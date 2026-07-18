@@ -5,8 +5,11 @@ thinking, and decisions get gathered as they happen. Not a plan and not a strate
 record of what we said and settled on, so nothing has to be re-derived.
 
 Companion docs:
-- `docs/architecture.md` — how the system is built to flex. Start here.
-- `docs/requirements.md` — what the challenge brief actually demands, extracted from the PDF.
+- `docs/architecture.md` — how the system is built to flex. **Start here.**
+- `docs/requirements.md` — what the challenge brief demands, extracted from the PDF.
+- `docs/dataset-audit.md` — what the real data actually looks like. Overrides any assumption.
+- `docs/strategy.md` — the bets and why. Partly predates the audit; read it after the audit.
+- `docs/verdict-contract.md` — table schemas. Stale in places, flagged inline.
 - `HANDOFF.md` — session-to-session resume notes. Different purpose; not a project doc.
 
 ---
@@ -121,18 +124,20 @@ gap in the paperwork, not a verdict on the hospital."
 
 ### Open threads
 
-- **Contradiction detection is the whole technical risk.** The interesting cases only work if the
-  system reads free text like "all critical and ventilator-dependent cases are referred to Patna"
-  and recognizes it as the opposite of an ICU claim. That is genuine entailment checking, not
-  retrieval. Budget it as core work.
-- **Nothing double-checks itself yet.** The rubric says outright "we value apps that double-check
-  their own work," and a Validator step is stretch goal 2. No self-check exists in the mock.
-- **Persistence is a hard requirement.** The brief says user actions must survive beyond a session.
-  The mock keeps overrides in memory only. Real build needs Lakebase.
-- **We have never opened the dataset.** Every field-level assumption comes from the brief's coverage
-  table, not from real rows. The 51-column schema is unexamined. This should happen early — the
-  whole evidence model assumes those four fields carry usable text.
-- **Not a git repo yet.** The brief requires submitting one.
+Status as of the end of the day. Struck items are resolved further down this file.
+
+- ~~**Contradiction detection is the whole technical risk.**~~ Partly superseded. Still the hardest
+  check, but the dataset audit found most negative language is extractor boilerplate, so the real
+  contradiction rate is unknown and may be low. Whether it stays a first-class check is now a
+  strategy question, not an assumption.
+- **Nothing double-checks itself yet.** Still open. The rubric says "we value apps that double-check
+  their own work," and a Validator step is stretch goal 2. Under the current thesis this is not one
+  feature but the measurement half of swappable-and-measurable.
+- **Persistence is a hard requirement.** Still open. User actions must survive beyond a session.
+  Needs Lakebase.
+- ~~**We have never opened the dataset.**~~ Done. See the live audit below and
+  `docs/dataset-audit.md`.
+- ~~**Not a git repo yet.**~~ Done. Initialized; commits go on branches, a hook blocks `main`.
 
 ### Setup state as of today
 
@@ -224,16 +229,29 @@ stack list is partly aspirational — do not treat it as a checklist.**
 
 ### The core strategic idea
 
-The adjudication ladder: presence -> lexical -> retrieval -> LLM entailment -> referee, where the
-first rung that can decide, decides, and every verdict records which rung fired. The goal is for
-most verdicts to remain explainable without a model call, but the live dataset audit has not proved
-that yet. The 300-claim labeled pilot must measure it.
+Superseded framing, kept for the record: this section used to present the adjudication ladder as
+the strategic idea. It is not. It is the mechanism. See "The thesis" at the top of this file — the
+strategic idea is that **checks are swappable and measurable**, and the ladder is simply how they
+are arranged.
 
-Second idea, the one we think is genuinely novel: **the review workflow is the calibration loop.**
-Everyone will treat "persist reviewer decisions" as a storage requirement. We treat confirms and
-overrides as labels, then publish measured precision per verdict state with Wilson score intervals.
-That answers the brief's own stated open research question about quantifying trust without ground
-truth, and it closes the exact hole we found in TimeZyme.
+Restated in the right order:
+
+1. **The slot is the product.** Every check is an independent unit that abstains when it cannot
+   decide. Adding, reordering, or replacing one touches nothing else. Our six vocabularies and five
+   checks are example content that ships in the slot, not the thing being sold.
+2. **The ladder is the arrangement.** Parse -> presence -> vocabulary -> retrieval -> entailment ->
+   referee, first check that can decide wins, and every verdict records which check decided it. That
+   record is what makes a swap traceable — you can see exactly which check made which call.
+3. **The review workflow is the measurement.** Everyone will treat "persist reviewer decisions" as
+   storage. We treat confirms and overrides as labels, then publish measured precision per verdict
+   with Wilson score intervals. That is what turns swappability from a claim into something
+   provable: replace a check, rerun, see whether the number moved.
+
+Point 3 answers the brief's own open research question about quantifying trust without ground truth,
+and closes the exact hole we found in TimeZyme — confidence signals with no harness to calibrate
+them.
+
+Still unproven: how many claims the cheap checks settle. The 300-claim labeled pilot measures it.
 
 ### TimeZyme: one real algorithm transfers, not just the stance
 
@@ -330,18 +348,27 @@ it handles. Worth saying exactly that in the demo.
 
 ### What got built
 
-Repo initialized on `main`, first commit `c1bb0be`. `.env` confirmed untracked.
+Repo initialized, `.env` confirmed untracked. Commits go on branches; a hook blocks `main`.
 
-- `src/trustdesk/marks.py` — the four marks, four verdicts, and the derivation rule in one place.
-- `src/trustdesk/lexicon.py` — capability surface forms and refutation patterns. Deliberately
-  excludes bare "referral", since a *referral hospital* receives referrals and that supports a claim
-  rather than refuting it. Regression-tested.
-- `src/trustdesk/ladder.py` — rungs 0 and 1. Returns `mark=None` to mean escalate, which is a
-  decision to defer, never a failure.
-- 29 tests passing.
-- `docs/verdict-contract.md` — the schema the dataset work needs to slot into, with seven open
-  questions only the data can answer. Questions 6 and 7 (how rich is `description`, do refutation
-  patterns actually occur) are the ones that decide whether the ladder works.
+- `src/trustdesk/marks.py` — the five marks, five verdicts, and the derivation rule in one place.
+- `src/trustdesk/lexicon.py` — capability vocabularies, refutation patterns, boilerplate patterns,
+  sentence splitting. Deliberately excludes bare "referral", since a *referral hospital* receives
+  referrals and that supports a claim rather than refuting it. Regression-tested.
+- `src/trustdesk/ladder.py` — parse, presence and vocabulary checks. Returns `mark=None` to mean
+  abstain, which is a decision to defer, never a failure.
+- 43 tests passing.
+- `docs/verdict-contract.md` — the table schema. Written before the data landed, so it is stale on
+  source URLs (row-level, not sentence-level), field shapes (arrays, not prose), and the quarantine
+  state. Needs reconciling.
+- `docs/architecture.md` — the design that makes the thesis real: one `Check` protocol with
+  abstention, enrichers separate from deciders, capabilities and pipelines as data rather than code.
+  **This is the doc a new agent should read first.**
+
+**Known gap between the design and the code.** `docs/architecture.md` describes checks as
+independent pluggable units. `ladder.py` currently hardcodes them as if/else flow inside
+`assess_field()`. The behaviour is right, the shape is not — adding a sixth check means editing that
+function. Refactoring to the protocol is agreed but deliberately not done yet; the 43 tests exist to
+pin behaviour through that change.
 
 ### Live dataset audit completed
 
