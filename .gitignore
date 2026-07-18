@@ -5,6 +5,7 @@
 .mcp/
 .codex/
 .claude/
+.serena/
 CLAUDE.md
 __pycache__/
 *.py[cod]
