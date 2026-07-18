@@ -104,9 +104,9 @@ These are stated as unsolved by the organizers, which makes them scoring opportu
 
 ## Dataset — India 10k
 
-10,000 medical facilities across India. Structured metadata plus deep unstructured notes across
-**51 columns**. The brief instructs: "Treat extracted evidence fields as noisy claims, not ground
-truth."
+The brief describes 10,000 medical facilities across India, with structured metadata plus deep
+unstructured notes across **51 columns**. It instructs: "Treat extracted evidence fields as noisy
+claims, not ground truth."
 
 | Field | Coverage |
 |---|---|
@@ -121,5 +121,8 @@ truth."
 Access requires a Databricks account. The brief also links a Virtue Foundation schema document and
 the prompts and pydantic models used to create the data.
 
-**Not yet verified by us:** we have not opened the dataset. Every field-level statement above comes
-from the brief, not from inspecting real rows. The 51-column schema is unexamined.
+The table above is the brief's reported coverage. Live inspection on 2026-07-18 found 10,088 rows
+and all 51 columns. Measured non-empty coverage was 99.2% for `description`, 98.6% for `capability`,
+91.4% for `procedure`, and 76.2% for `equipment`. `source_urls` is a real column with 98.8%
+non-empty coverage. See `docs/dataset-audit.md` for field shapes, lexical measurements, malformed
+rows, and the source-mapping limitation.

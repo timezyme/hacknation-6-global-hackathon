@@ -25,20 +25,20 @@ decides**. Every verdict records which rung fired and why.
 | Rung | What it does | Cost |
 |---|---|---|
 | 0. Presence | Is the field empty or populated? Separates "no data" from "has data". | Free |
-| 1. Lexical | Bidirectional containment and agreement between claim terms and field text. | Free |
+| 1. Vocabulary | Target-specific medical terms plus bidirectional containment and agreement. | Free |
 | 2. Retrieval | Vector Search for supporting **and refuting** passages. | Cheap |
 | 3. Entailment | LLM adjudication (Sonnet 5), only where rungs 0-2 are inconclusive. | Metered |
 | 4. Referee | Opus 4.8, only when an independent second check disagrees with rung 3. | Rare |
 
 Why this is the right shape, not just a cost optimization:
 
-- **Most verdicts become explainable without a model at all.** A planner can be shown exactly why
-  a facility was marked "no data at all" — the field is empty. No trust required.
+- **Deterministic verdicts are directly explainable.** A planner can be shown exactly why a
+  facility was marked "no data at all" — the field is empty. No trust required.
 - **The model is the last resort, not the first.** That is the opposite of a chatbot behind a
   search box, which the brief explicitly warns against under Product Judgment.
-- **It survives rate limits.** 10,000 facilities times six capabilities is 60,000 adjudications.
-  Naively that is 60,000 LLM calls; on Free Edition pay-per-token that is not survivable. The
-  ladder pushes the large majority to rungs 0-1.
+- **It is designed to survive rate limits.** 10,088 facilities times six capabilities is up to
+  60,528 adjudications. Naively making one LLM call per case is not survivable. The labeled pilot
+  must prove how many cases the cheap rungs settle correctly; we no longer assume a majority.
 
 ### Bet 2 — We retrieve refutation, not just support (aims at 35%)
 
@@ -214,15 +214,17 @@ The honesty stance transfers. So, unexpectedly, does one real algorithm.
 
 ## How we proceed
 
-Ordered by dependency. Step 0 is blocking and nothing downstream is safe until it is done.
+Ordered by dependency. Step 0 is complete; its measurements are in `docs/dataset-audit.md`.
 
-0. **Get the dataset into Unity Catalog and actually look at it.** We have never opened it. Every
-   assumption in this doc about the four evidence fields comes from the brief's coverage table, not
-   from real rows. Inspect the real 51-column schema, read actual descriptions, and confirm the
-   evidence model survives contact. Also confirm whether `source URL` is a real column.
-1. **Build the ladder offline** in a notebook over a sample (200-500 facilities), MLflow-traced from
-   the start. Tune rungs 0-1 until the majority of cases resolve without a model call. Measure what
-   fraction escalates.
+0. **Completed: install and inspect the live dataset.** The table has 51 columns and 10,088 rows.
+   `source_urls` is real. Descriptions are short, while capability, procedure, and equipment are
+   richer JSON sentence arrays. Three malformed rows require quarantine. Source URLs are row-level
+   provenance and do not map reliably to individual claim sentences.
+1. **Build the ladder offline** in a notebook over 300 stratified claims, 50 for each target
+   capability, MLflow-traced from the start. Add parse-and-quarantine before presence. Run lexical
+   checks on individual sentence items using a small capability vocabulary, not the serialized JSON
+   blob. Human-label support, refutation, irrelevant, and uncertain items, then measure what fraction
+   the cheap rungs settle correctly and what fraction escalates.
 2. **Materialize verdicts** to a Delta table, then build the AI Search index for evidence passages.
 3. **Stand up the app**: FastAPI plus the existing HTML, reading the verdicts table. Deploy to Free
    Edition early — the brief says deploy early and demo on Free Edition, and 3-app plus 24-hour
@@ -238,14 +240,18 @@ Git repo is required for submission and this project is not one yet. Initialize 
 
 ## Live risks
 
-1. **The dataset may not support the evidence model.** If real descriptions are short and generic,
-   rung 1 rarely fires and everything escalates to the LLM, which Free Edition rate limits will not
-   absorb. Step 0 tells us. Mitigation if true: narrow to a subset of facilities with rich text and
-   be explicit in the demo about the subset.
-2. **Contradiction detection may underperform.** It is the hardest rung. Mitigation: it degrades
-   gracefully — a missed contradiction becomes "limited record support," not a wrong confident
-   answer.
-3. **Free Edition rate limits on Foundation Model APIs are not documented for our tier.** Budget
+1. **Plain lexical matching is not enough.** Exact target vocabulary appears in two independent
+   evidence fields for only 6-18% of target-claiming rows. Mitigation: a small, explicit medical
+   vocabulary before LLM entailment, calibrated on the 300-claim labeled set. Do not hide the
+   problem by selecting only facilities with rich descriptions.
+2. **Provenance is row-level, not sentence-to-URL.** The source arrays do not align reliably with
+   individual claim sentences. Mitigation: cite the exact row field and sentence, label URLs as the
+   row's source set, and only assert page-level support after retrieving and verifying that page.
+3. **Contradiction detection may underperform.** It is the hardest rung. Generic negative phrases
+   are often extraction boilerplate or refer to another service. Mitigation: bind negation to the
+   target capability and escalate ambiguous cases. A missed contradiction degrades gracefully to
+   "limited record support," not a wrong confident answer.
+4. **Free Edition rate limits on Foundation Model APIs are not documented for our tier.** Budget
    conservatively; the ladder is the primary defense.
-4. **Calibration needs labels.** A few hundred reviewer decisions do not appear by themselves. We
-   may need to label a gold set by hand to seed it. Plan for that rather than discovering it late.
+5. **Calibration needs labels.** The 300-claim audit becomes the seed set. Reviewer confirms and
+   overrides expand it after launch.

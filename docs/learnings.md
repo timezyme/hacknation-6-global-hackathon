@@ -12,3 +12,5 @@
 - Live verification passed for MCP initialization, `health`, `current_identity`, `list_catalogs`, and `list_sql_warehouses`. Verification output must report pass/fail only; do not print identities, catalog names, warehouse details, hosts, or credentials.
 - Run `codex mcp list` from the project root to confirm that `databricks` is enabled. Restart Codex or open a new task after changing MCP configuration.
 - Current limitation: this pinned Phase 1 server is read-only. It can inspect identity, Unity Catalog catalogs, and SQL warehouses, but it cannot execute SQL or query facility rows.
+- The Virtue Foundation Marketplace listing is installed as the Unity Catalog catalog `virtue_foundation_dais_2026`.
+- For bounded row inspection, use the Databricks SQL Statements REST API with the project `.env` credentials. Keep warehouse IDs and credentials out of logs and docs; report only the query facts needed for the task.

@@ -196,8 +196,9 @@ stack list is partly aspirational — do not treat it as a checklist.**
 ### The core strategic idea
 
 The adjudication ladder: presence -> lexical -> retrieval -> LLM entailment -> referee, where the
-first rung that can decide, decides, and every verdict records which rung fired. Most verdicts end
-up explainable with no model call at all, which is both cheaper and more defensible.
+first rung that can decide, decides, and every verdict records which rung fired. The goal is for
+most verdicts to remain explainable without a model call, but the live dataset audit has not proved
+that yet. The 300-claim labeled pilot must measure it.
 
 Second idea, the one we think is genuinely novel: **the review workflow is the calibration loop.**
 Everyone will treat "persist reviewer decisions" as a storage requirement. We treat confirms and
@@ -232,3 +233,30 @@ everything above was verified. Per `docs/learnings.md`: installed and configured
 connected and verified. To use it here it needs registering in Claude Code's MCP config.
 
 (Note on naming: this is the **Databricks** MCP. Dataplex is a Google Cloud product.)
+
+### Live dataset audit completed
+
+The Virtue Foundation Marketplace listing is now installed in Unity Catalog as
+`virtue_foundation_dais_2026`. The live `facilities` table has 51 columns, 10,088 rows, and 10,077
+distinct `unique_id` values. Full measurements are in `docs/dataset-audit.md`.
+
+The evidence model survives, but the dataset changes its implementation:
+
+- `description` is plain text with a median length of 115 characters. It is often too generic to be
+  the main evidence source.
+- `capability`, `procedure`, and `equipment` are JSON string arrays containing richer extracted
+  claim sentences. Evidence marks must operate on individual items, not whole serialized fields.
+- Exact target vocabulary appears in two independent fields for only 6-18% of target-claiming rows.
+  Plain containment is not enough. The lexical rung becomes a small, explicit vocabulary for each
+  of ICU, maternity, emergency, oncology, trauma, and NICU.
+- Generic negative phrases are noisy. `No specific procedures listed` is a missing-data statement,
+  not a contradiction of every capability. Negation must bind to the target or escalate.
+- `source_urls` exists, but source arrays do not reliably map individual claim sentences to URLs.
+  The UI may cite the exact row sentence and show the row's source set. It must not claim a specific
+  page supports a sentence until that page is fetched and verified.
+- Three obviously column-shifted rows fail claim-field JSON parsing. A parse-and-quarantine rung now
+  precedes presence, and malformed records render as `Could not check`, never `Not enough data`.
+
+Next experiment: label 300 claims, 50 per target capability, as support, refutation, irrelevant, or
+uncertain. Use that set to tune the vocabularies, measure cheap-rung accuracy and escalation rate,
+and seed calibration.
