@@ -5,8 +5,37 @@ thinking, and decisions get gathered as they happen. Not a plan and not a strate
 record of what we said and settled on, so nothing has to be re-derived.
 
 Companion docs:
+- `docs/architecture.md` — how the system is built to flex. Start here.
 - `docs/requirements.md` — what the challenge brief actually demands, extracted from the PDF.
 - `HANDOFF.md` — session-to-session resume notes. Different purpose; not a project doc.
+
+---
+
+## The thesis — read this before anything else
+
+**We are not shipping the right answer. We are shipping the thing that lets people add better
+answers.**
+
+1. There is no answer key. Nobody knows the true state of these 10,000 hospitals.
+2. So any single way of checking a claim is one opinion, including ours.
+3. Claiming our checks are correct would be dishonest — the exact thing the challenge penalises,
+   since it says outright that it values apps which double-check their own work.
+4. The honest move is to make the checking method **swappable and measurable**, and always show
+   which check decided.
+5. Our six capability vocabularies and five checks are **example content, not the product**. Each
+   check is an independent, replaceable unit that can be swapped, reordered, or removed without
+   touching the others. The product is the slot they plug into, not what we happened to put in it.
+
+**Why "measurable" matters as much as "swappable."** Anyone can claim modularity. Without
+measurement a swap is unevaluable — you can replace a check and have no idea whether you made
+things worse. The review loop supplies the yardstick, so someone can prove their check beats ours
+rather than just asserting it.
+
+**What this means concretely.** A doctor who knows more about ICUs than we do should be able to add
+a better ICU check by writing one file, not by reading our code.
+
+**How we say it in the demo.** "We don't know if our checks are right. So we built it so you can
+replace them, and we show you which check made every call."
 
 ---
 
