@@ -134,7 +134,7 @@ India 10k (Unity Catalog Delta table)
         |
         v
   [ Adjudication ladder ]  <- notebook / job, runs once, MLflow-traced
-  rung 0 presence -> rung 1 lexical -> rung 2 retrieval -> rung 3 entailment -> rung 4 referee
+  rung 0 presence -> rung 1 vocabulary -> rung 2 retrieval -> rung 3 entailment -> rung 4 referee
         |
         v
   verdicts Delta table          AI Search index
