@@ -15,206 +15,200 @@ quoted from the brief:
 > sees ranked facilities with trust signals -> expands any facility to inspect citations ->
 > overrides the assessment with a note.
 
-**What we are building.** A planner picks a capability and a region. They see facilities claiming it,
-ordered by how well the rest of that facility's own record backs the claim up, with the supporting
-or contradicting text shown. They can disagree and leave a note, which persists.
-
-**How a record is judged.** Each record has four readable parts: description, capability list,
-equipment list, procedure list. Each part is marked against the claim as *backs it*, *says nothing*,
-*no data at all*, or *contradicts*. Those four marks combine into one verdict by a fixed rule.
-
-The distinction that carries the product: **"says nothing" and "no data at all" are never merged.**
-An empty field means we do not know. Collapsing them turns a paperwork gap into an apparent medical
-desert, and telling them apart is what the challenge rewards most.
-
 **What we are scored on.** Evidence and Trust 35%, Product Judgment 30%, Technical Execution 25%,
 Ambition 10%. The brief says outright: "Since there is no ground truth, we value apps that
 double-check their own work." That sentence is why this architecture is shaped the way it is.
 
-**Hard constraints.**
-- Must ship as a live Databricks App on **Free Edition**, demoed live.
-- One SQL warehouse, fixed at 2X-Small — so verdicts are precomputed in batch, never at request time.
-- Frontier models (Claude, Gemini) are rate-limited to zero in this workspace. Only open-weight
-  models are reachable. Model calls are scarce and must be earned.
-
-**What we already learned that constrains the design** (see `docs/dataset-audit.md`):
-- The three claim fields are JSON arrays of extracted sentences, not prose. Items are judged
-  individually.
-- Descriptions are thin — median 115 characters, many are just "Hospital" or "Open 24 Hrs".
-- Most negative language in the corpus is extractor boilerplate, not facilities contradicting
-  themselves. A bare negative regex is not a contradiction detector.
-- Three rows are corrupted and must be quarantined rather than judged.
-- Source URLs exist but are row-level, not sentence-level. Citations are honest about that.
-
-**Open question this design must survive.** We do not yet know what fraction of claims the cheap
-checks can settle. If nearly everything escalates to a model, the economics fail on Free Edition.
-That number is being measured now.
-
-**Where to push back.** The riskiest bets are that cheap checks settle most cases, that real
-contradictions are common enough to be worth first-class support, and that the indirection below
-pays for itself in a hackathon timeframe. Critique those first.
+**The thesis.** We are not shipping the right answer. We are shipping the thing that lets people add
+better answers. Every checking method is one opinion, including ours, so the checks are built to be
+swapped and measured — and every verdict records which check decided it.
 
 ---
 
-Design first. The mission is that this flexes: new checks, new capabilities, new evidence sources,
-new verdict rules — all without editing what already works.
+## The system
 
-## The one idea
+```mermaid
+flowchart TB
+    REC["<b>Facility record</b><br/>description · capability[] · equipment[] · procedure[]"]
+    REC --> PIPE
 
-Everything is **a check that is allowed to abstain.**
+    subgraph PIPE["CHECK PIPELINE — first check that can decide, decides"]
+      direction LR
+      P1["<b>1 parse</b><br/>readable?<br/><i>free</i>"]
+      P2["<b>2 presence</b><br/>empty?<br/><i>free</i>"]
+      P3["<b>3 vocabulary</b><br/>mentioned? refuted?<br/><i>free</i>"]
+      P4["<b>4 retrieval</b><br/>find evidence<br/><i>cheap</i>"]
+      P5["<b>5 entailment</b><br/>ask a model<br/><i>metered</i>"]
+      P6["<b>6 referee</b><br/>2nd model<br/><i>rare</i>"]
+      PX["<b>+ your check</b><br/>1 file + 1 config line"]
+      P1 -.->|abstain| P2 -.->|abstain| P3 -.->|abstain| P4 -.->|abstain| P5 -.->|disagree| P6 -.-> PX
+    end
 
-A check looks at one claim and one piece of evidence and returns either a finding or nothing.
-Returning nothing means "I cannot settle this" — not failure, not absence. Checks never call each
-other and never know what else is in the pipeline.
+    PIPE --> MARK["<b>One mark per field</b><br/>backs it · says nothing · no data · contradicts · could not check"]
+    MARK --> VERD["<b>Verdict</b> — fixed rule, not a model"]
+    VERD --> DELTA[("<b>Delta tables</b><br/>verdicts + evidence + which check decided")]
 
-The ladder is then trivial: run checks in order, take the first finding, record which check produced
-it. Adding a check is appending to a list. Reordering is data.
+    DELTA --> APP["<b>Databricks App</b>"]
+    APP --> USER(["<b>Planner</b><br/>picks capability + region<br/>expands a row to see the proof"])
+    USER --> REV["<b>Confirm</b> or <b>Override</b>"]
+    REV --> LAKE[("<b>Lakebase</b><br/>review decisions")]
+    LAKE --> CAL["<b>Calibration</b><br/>measured accuracy per verdict"]
+    CAL -.->|tunes checks, proves a swap| PIPE
 
-### The invariant that makes it correct
-
-> A check may decide only when no more expensive check could overturn it. Otherwise it abstains.
-
-This is what stops cheap-first from meaning sloppy-first. It is not theoretical: we tested the
-available models on three cases and both got 2 of 3, failing the one where a record simply never
-mentions the capability. The vocabulary check owns that case with certainty, so it decides it, and
-the model never sees it. Cheap is also *more accurate* there — but only because the check knows the
-boundary of what it can settle.
-
-## Stages
-
-Each stage is a seam. Data crosses stages as value objects, never as raw rows.
-
-```
-raw row
-  -> Ingest          parse, validate, quarantine        -> Facility | Quarantined
-  -> ClaimSource     which capabilities does it assert? -> [Claim]
-  -> EvidenceSource  what can we read as evidence?      -> [EvidenceItem]
-  -> Ladder          run checks until one decides       -> [Finding]
-  -> FieldReducer    findings for a field -> one mark   -> Mark per field
-  -> VerdictRule     marks -> one verdict               -> Verdict
-  -> Sink            write verdicts + findings          -> Delta tables
-```
-
-Serving and review sit downstream and never re-run adjudication:
-
-```
-Delta tables -> App (read only) -> reviewer confirms/overrides -> Lakebase -> Calibration
+    classDef free fill:#1d2540,stroke:#5b6bb5,color:#e7eaef
+    classDef paid fill:#2b2013,stroke:#b5852f,color:#e7eaef
+    classDef open fill:none,stroke:#9184d9,stroke-dasharray:5 4,color:#9184d9
+    classDef store fill:#12161c,stroke:#4a515e,color:#e7eaef
+    classDef human fill:#16281d,stroke:#4a8a5f,color:#e7eaef
+    class P1,P2,P3 free
+    class P4,P5,P6 paid
+    class PX open
+    class DELTA,LAKE store
+    class USER,REV human
 ```
 
-## Core types
+Left to right in the pipeline is cheapest to most expensive. A check that cannot settle a case
+**abstains** and passes it along. The dashed box is the point: adding a check is one file and one
+config line.
 
-| Type | What it is |
-|---|---|
-| `Claim` | facility id + capability. The thing being verified |
-| `EvidenceItem` | one readable unit: field name, text, position. One array item, or a description |
-| `Finding` | mark or abstain, plus `check_id`, rationale, span, cost tier |
-| `Context` | the claim, its evidence items, findings so far, anything enrichers added, remaining budget |
-| `Mark` | per-field outcome: supports / silent / missing / conflicts / uncheckable |
-| `Verdict` | per-claim outcome, derived from marks |
+## Where each piece runs
 
-`Finding.check_id` is not optional. It is the receipt — every trust signal in the UI traces to the
-check that produced it.
+```mermaid
+flowchart LR
+    subgraph BATCH["BATCH — runs once, ahead of time"]
+      direction TB
+      UC[("Unity Catalog<br/>10,088 facilities")] --> RUN["Check pipeline<br/>60,528 claims"]
+      RUN --> OUT[("Delta tables")]
+      AIS[("AI Search<br/>evidence index")] -.-> RUN
+      LLM["Open-weight models<br/>Llama / Qwen"] -.-> RUN
+    end
 
-## The two protocols
+    subgraph LIVE["LIVE — while the planner waits"]
+      direction TB
+      API["FastAPI app"] --> LB[("Lakebase")]
+    end
 
-**Deciders** answer. **Enrichers** add material for later checks and never answer.
+    OUT --> API
+    MLF["MLflow traces"] -.-> RUN
 
-```python
-class Check(Protocol):
-    id: str
-    tier: Tier                      # FREE | CHEAP | METERED | RARE
-
-    def applies(self, ctx: Context) -> bool: ...
-    def examine(self, ctx: Context) -> Finding | None: ...   # None = abstain
-
-
-class Enricher(Protocol):
-    id: str
-    tier: Tier
-
-    def enrich(self, ctx: Context) -> Context: ...
+    classDef store fill:#12161c,stroke:#4a515e,color:#e7eaef
+    class UC,OUT,AIS,LB store
 ```
 
-Retrieval is an enricher: it fetches supporting and refuting passages into the context. The
-entailment check then reads them. Neither knows the other exists.
+Nothing is adjudicated while someone waits. Free Edition gives one 2X-Small warehouse, so all claims
+are settled in batch and the app only reads.
 
-## The ladder
+---
 
-```python
-def adjudicate(ctx, pipeline, budget) -> Finding:
-    for step in pipeline:
-        if not budget.allows(step.tier):
-            return Finding.unresolved("budget exhausted", ctx)
-        if isinstance(step, Enricher):
-            ctx = step.enrich(ctx)
-            continue
-        if not step.applies(ctx):
-            continue
-        if finding := step.examine(ctx):
-            return finding
-    return Finding.unresolved("no check could decide", ctx)
-```
+## Components and what each one owns
 
-That is the whole engine. Everything else is a check.
+| Component | Owns | Does not own |
+|---|---|---|
+| **Ingest** | Parsing a raw row, validating it, quarantining what is malformed | Any judgement about the facility |
+| **Claim source** | Deciding which capabilities a record asserts | Whether those claims are true |
+| **Evidence source** | Turning fields into readable units. One array item, or a description | What those units mean |
+| **Check** | Judging one claim against one unit, or abstaining | Ordering, cost policy, other checks |
+| **Pipeline** | Running checks in order, taking the first decision, recording which | What any check concludes |
+| **Budget policy** | Whether an escalation is affordable right now | What a check does when allowed |
+| **Field reducer** | Collapsing several findings for one field into one mark | The final verdict |
+| **Verdict rule** | Collapsing four marks into one verdict | Any evidence handling |
+| **Sink** | Writing verdicts and evidence to Delta | Reading them back |
+| **App** | Reading precomputed verdicts, presenting evidence, capturing review | Adjudicating anything |
+| **Calibration** | Turning review decisions into measured accuracy | Changing verdicts |
 
-`budget` is its own seam — a policy object. Free Edition rate limits are undocumented, so how
-aggressively we escalate must be tunable without touching checks.
+The rule that keeps these honest: **data crosses component boundaries as value objects, never as raw
+rows.** A component that receives a raw row is doing someone else's job.
 
-## What is data, not code
+## The seams, and why each exists
 
-This is where the extensibility actually lives.
+1. **Check boundary.** A check sees one claim and one piece of evidence, and may abstain. Checks
+   never call each other and never know what else is in the pipeline. This exists so a check can be
+   added, removed, reordered, or replaced without touching any other.
 
-**Capabilities are data.** One spec per capability, loaded from file:
+2. **Decider versus enricher.** Most checks answer. Some only add material — retrieval fetches
+   supporting and refuting passages so the entailment check has something to read. Separating them
+   means retrieval can be swapped for a different search without the entailment check noticing.
 
-```yaml
-name: ICU
-synonyms:      [intensive care unit, critical care, ICU]
-supporting:    [ventilator, mechanical ventilation, intensivist, central oxygen]
-refuting:      [referred to, no intensive care, not maintained on site]
-```
+3. **Cost tier.** Every check declares what it costs: free, cheap, metered, rare. The pipeline uses
+   this to order and to budget. This exists because Free Edition rate limits are undocumented, so
+   how aggressively we escalate must change without editing checks.
 
-Adding dialysis or cardiac surgery is a new file. No code changes, no redeploy of logic.
+4. **Evidence source registration.** Fields become evidence through a registry. The dataset carries
+   `numberDoctors` and `capacity` that we currently ignore; adding one is a registration, not a
+   rewrite, because it arrives in the same shape everything already handles.
 
-**Pipelines are data.** An ordered list of check ids with tiers. Swapping vocabulary matching for
-embedding similarity is a config edit, and both can run with the loser as a fallback.
+5. **Verdict rule as a strategy.** The rule that turns marks into a verdict is one replaceable unit,
+   separate from everything that produced the marks.
 
-**Evidence sources are registered.** Today: description, capability, equipment, procedure. The
-dataset also has `numberDoctors` and `capacity`, which we ignore. Adding one is registering a
-source, not rewriting adjudication — and it lands in the same `EvidenceItem` shape everything else
-already handles.
+## Decisions and their tradeoffs
 
-## Extension points
+**Cheapest check first, first decision wins.**
+*Why:* 60,528 claims cannot each afford a model call on Free Edition.
+*The catch:* cheap-first becomes sloppy-first unless constrained, so a check may decide **only when
+no more expensive check could overturn it**. Otherwise it abstains.
+*Evidence this is right:* both reachable models were tested on three cases and both scored 2 of 3,
+failing the same one — they call "contradicts" on records that simply never mention the capability.
+The free vocabulary check owns that case with certainty and never escalates it. Cheaper *and* more
+accurate.
 
-| To add | You touch |
-|---|---|
-| A new check | One new class, one line in a pipeline config |
-| A new capability | One YAML file |
-| A new evidence field | One `EvidenceSource` registration |
-| A different matching strategy | One check, swapped in config |
-| A different verdict rule | One `VerdictRule` implementation |
-| A different escalation budget | One policy object |
-| A new model for entailment | Config on the existing check |
+**Abstention is a first-class result, not a failure.**
+*Why:* a check that guesses when unsure produces confident wrong answers, which is the worst outcome
+for a trust product.
+*Cost:* an unresolved claim is a real state the UI has to show, rather than something we can hide.
 
-Nothing on that list requires editing a file that already works.
+**Precompute everything, serve nothing live.**
+*Why:* one 2X-Small warehouse, and a demo that must not stall.
+*Cost:* verdicts are stale between runs, and re-running is a batch job rather than a click.
 
-## What this buys beyond tidiness
+**The verdict is derived, never model-written.**
+*Why:* a label that a model writes can drift from the evidence beneath it.
+*Cost:* the rule is blunt, and cannot express "almost."
 
-1. **Checks are unit-testable in isolation.** No pipeline, no fixtures, no workspace.
-2. **Every verdict is explainable by construction**, because the deciding check is recorded rather
-   than reconstructed afterwards.
-3. **The escalation rate becomes measurable per check**, which is the number the strategy hinges on.
-   We can see exactly which check is failing to settle cases.
-4. **A failed check is visible.** It abstains, and an unresolved finding is a real state — never
-   silently rendered as "no evidence."
+**No numeric confidence score.**
+*Why:* we have no calibration set, so a number would imply precision we do not have.
+*Cost:* less legible at a glance than "0.87". We accept that until measured accuracy exists.
 
-## Known cost
+**Review decisions are labels, not just storage.**
+*Why:* it is the only way to prove a swapped check is an improvement rather than a change.
+*Cost:* needs volume before it says anything, so early numbers must be shown as uncertain.
 
-Indirection. For a hackathon this is only worth it because the checks genuinely churn: we have
-already rewritten the vocabulary rung once after the dataset audit, and rungs 2 through 4 do not
+**Capabilities and pipelines are data, not code.**
+*Why:* a doctor who knows more about ICUs than we do should improve the system by writing a file.
+*Cost:* indirection, and a config format to maintain.
+
+## Known cost of this design
+
+Indirection, in a hackathon. It earns its place only because the checks genuinely churn — the
+vocabulary check was already rewritten once after the dataset audit, and checks 4 through 6 do not
 exist yet. If the check set were settled, this would be over-engineering.
 
-## Migration from what exists
+## Constraints that forced these choices
 
-Current `assess_field()` is the right behaviour in the wrong shape — five checks hardcoded as
-if/else. It becomes five check classes with the logic moved, not rewritten. The 43 existing tests
-pin the behaviour and must keep passing through the refactor.
+- Must ship as a live Databricks App on **Free Edition**, demoed live.
+- One SQL warehouse, fixed at 2X-Small.
+- Frontier models are rate-limited to zero in this workspace. Only open-weight models are reachable,
+  so model calls are scarce and must be earned.
+- Three claim fields are JSON arrays of extracted sentences, not prose. Items are judged one at a
+  time.
+- Descriptions are thin — median 115 characters, many just "Hospital" or "Open 24 Hrs".
+- Most negative language in the corpus is extractor boilerplate, so a bare negative regex is not a
+  contradiction detector.
+- Source URLs are row-level, not sentence-level. Citations must be honest about that.
+
+See `docs/dataset-audit.md` for the measurements behind the last four.
+
+## Open question this design must survive
+
+We do not know what fraction of claims the free checks settle. If nearly everything escalates, the
+economics fail. A 300-claim labelled pilot is measuring it — and because every verdict records which
+check decided, the answer is observable per check rather than only in aggregate.
+
+**Where to push back.** The riskiest bets are that cheap checks settle most cases, that real
+contradictions are common enough to deserve first-class support, and that this indirection pays for
+itself in the time available. Critique those first.
+
+## Current state versus this design
+
+`src/trustdesk/ladder.py` has the right behaviour in the wrong shape — the checks are hardcoded as
+if/else inside one function rather than separate units. The 43 existing tests pin the behaviour and
+must keep passing through the refactor. Implementation detail lives in the code, not here.
