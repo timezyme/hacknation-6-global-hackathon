@@ -1,0 +1,28 @@
+#!/bin/sh
+set -eu
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+env_file="$project_dir/.env"
+server_dir="$project_dir/.mcp/DatabricksMCP"
+
+if [ ! -r "$env_file" ]; then
+  echo "DatabricksMCP: missing readable $env_file" >&2
+  exit 1
+fi
+
+if [ ! -d "$server_dir" ]; then
+  echo "DatabricksMCP: missing local checkout at $server_dir" >&2
+  exit 1
+fi
+
+exec /opt/homebrew/bin/uv run \
+  --directory "$server_dir" \
+  --env-file "$env_file" \
+  sh -eu -c '
+    : "${DATABRICKS_ACCESS_TOKEN:?DATABRICKS_ACCESS_TOKEN is required in the project .env}"
+    export DATABRICKS_TOKEN="$DATABRICKS_ACCESS_TOKEN"
+    unset DATABRICKS_ACCESS_TOKEN
+    export DATABRICKS_MCP_TRANSPORT=stdio
+    export DATABRICKS_MCP_ACCESS_MODE=read-only
+    exec databricks-mcp
+  '
