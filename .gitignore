@@ -1,6 +1,11 @@
 .env
 .venv/
-.mcp/DatabricksMCP/
+
+# Local agent tooling: machine-specific paths and credentials, never shared.
+.mcp/
+.codex/
+.claude/
+CLAUDE.md
 __pycache__/
 *.py[cod]
 .pytest_cache/
