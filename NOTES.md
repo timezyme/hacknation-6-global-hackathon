@@ -234,6 +234,86 @@ connected and verified. To use it here it needs registering in Claude Code's MCP
 
 (Note on naming: this is the **Databricks** MCP. Dataplex is a Google Cloud product.)
 
+---
+
+## 2026-07-18 (interim work, while dataset exploration runs elsewhere)
+
+### The frontier models are blocked. I was wrong to wave off the OpenAI key.
+
+Listing serving endpoints shows every model `READY`. **That listing lies.** Actually calling them:
+
+| Endpoint | Result |
+|---|---|
+| `databricks-claude-opus-4-8` | **403** — "temporarily disabled due to a Databricks-set rate limit of 0" |
+| `databricks-claude-sonnet-5` | **403** — same |
+| `databricks-gemini-3-5-flash` | **403** — same |
+| `databricks-meta-llama-3-3-70b-instruct` | 200, ~0.6s |
+| `databricks-qwen3-next-80b-a3b-instruct` | 200, ~0.9s |
+| `databricks-gemma-3-12b`, `databricks-meta-llama-3-1-8b-instruct` | 200 |
+| `databricks-gpt-oss-120b` / `-20b` | 200 but response shape differs, did not parse. Unresolved |
+| `databricks-gte-large-en`, `-bge-large-en`, `-qwen3-embedding-0-6b` | 200, 1024 dims |
+
+The pattern: **proprietary frontier models are rate-limited to zero on Free Edition; open-weight
+models work.** This is the undocumented Free Edition limit I flagged as a risk, now confirmed by
+direct test rather than inference.
+
+**Consequence: adding the OpenAI key was the right call and my advice against it was wrong.** I
+argued Databricks already served Opus 4.8 and Sonnet 5 so an external key added nothing. It served
+them in the listing only. Frontier reasoning is not reachable in-workspace at all, so the key is
+now the only route to it.
+
+**Good news: embeddings all work.** That was the load-bearing dependency — AI Search Delta Sync
+requires a Databricks embedding endpoint, and all three respond with 1024 dimensions. Retrieval is
+unblocked.
+
+### The ladder routes around a real model failure, not just cost
+
+Ran three hand-built cases (contradiction, support, silent) against the reachable models:
+
+| Case | llama-3.3-70b | qwen3-next-80b |
+|---|---|---|
+| Description refutes the ICU claim | CONTRADICTS, correct | CONTRADICTS, correct |
+| Description corroborates it | SUPPORTS, correct | SUPPORTS, correct |
+| Description simply never mentions ICU | **CONTRADICTS, wrong** | **CONTRADICTS, wrong** |
+
+Both score 2/3, and both fail the *same* case: they over-call contradiction when a record is merely
+silent. A nursing home that just does not mention ICU gets labelled as refuting the claim.
+
+That is exactly the failure that would destroy the product, because `silent` versus `conflicts` is
+the distinction the whole design rests on.
+
+**But rung 1 already decides the silent case and never escalates it.** No capability term appears,
+so it is marked `silent` for free and the model never sees it. The ladder only escalates when a
+mention *and* refuting language co-occur — which is precisely where these models are accurate.
+
+So the ladder turns a 2/3 model into a system correct on all three, and the justification is no
+longer just cost. It is that the cheap rung is *more accurate* than the expensive one on the case
+it handles. Worth saying exactly that in the demo.
+
+### Model plan, revised
+
+- **Rung 3 (entailment):** `databricks-meta-llama-3-3-70b-instruct` or
+  `databricks-qwen3-next-80b-a3b-instruct`. Both reachable, both sub-second, both Databricks-native
+  which protects the 25% Technical Execution bucket.
+- **Rung 4 (referee):** OpenAI, via the key. Now genuinely independent, because the in-workspace
+  frontier models are unreachable. This is the only path to frontier reasoning on disagreements.
+- **Embeddings:** `databricks-gte-large-en`. In-workspace, required by Delta Sync anyway.
+
+### What got built
+
+Repo initialized on `main`, first commit `c1bb0be`. `.env` confirmed untracked.
+
+- `src/trustdesk/marks.py` — the four marks, four verdicts, and the derivation rule in one place.
+- `src/trustdesk/lexicon.py` — capability surface forms and refutation patterns. Deliberately
+  excludes bare "referral", since a *referral hospital* receives referrals and that supports a claim
+  rather than refuting it. Regression-tested.
+- `src/trustdesk/ladder.py` — rungs 0 and 1. Returns `mark=None` to mean escalate, which is a
+  decision to defer, never a failure.
+- 29 tests passing.
+- `docs/verdict-contract.md` — the schema the dataset work needs to slot into, with seven open
+  questions only the data can answer. Questions 6 and 7 (how rich is `description`, do refutation
+  patterns actually occur) are the ones that decide whether the ladder works.
+
 ### Live dataset audit completed
 
 The Virtue Foundation Marketplace listing is now installed in Unity Catalog as

@@ -117,7 +117,7 @@ apps, genie, unity catalog) and against `docs.databricks.com/aws/en/getting-star
 | Databricks Apps | Available. **3 apps per account**, auto-stops 24h after start/redeploy, restartable | Restart before demo. Never rely on in-app memory; the container is wiped on restart |
 | AI Search (Vector Search) | Available. **1 endpoint, 1 search unit, Delta Sync only** — Direct Vector Access unsupported | One index, sourced from a Delta table. 10k rows is trivial against a 2M-vector unit |
 | Lakebase | Available. **1 project**, scale-to-zero Postgres | This is our persistence for review decisions. App gets `PGHOST`/`PGUSER` etc. injected automatically |
-| Model Serving | Pay-per-token only. **No provisioned throughput.** Opus 4.8, Sonnet 5, 3 embedding models READY | The ladder exists partly because of this |
+| Model Serving | **Frontier models are rate-limited to 0.** Claude Opus 4.8, Claude Sonnet 5, Gemini 3.5 Flash all return 403 despite listing as READY. Open-weight models (Llama 3.3 70B, Qwen3-Next 80B, Gemma 3) work at sub-second latency. All 3 embedding models work | Rung 3 uses open-weight in-workspace models. Rung 4 referee uses the OpenAI key, the only route to frontier reasoning. Verified by direct call, not inference |
 | **Agent Bricks** | **NOT available** — it is Beta, and Free Edition ships GA features only | Use Foundation Model APIs directly. Drop it from the plan |
 | Genie | Available, UI plus Conversation API | Optional. Possible ambition play, not core |
 | MLflow 3 | Tracing available | Core to Bet 4 |
