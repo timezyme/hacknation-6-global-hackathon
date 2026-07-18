@@ -1,0 +1,30 @@
+{
+  "completed_at": "2026-07-18T23:55:26.762093+00:00",
+  "deployment": {
+    "cold_start_duration_seconds": 181.583,
+    "cold_start_health_200": true,
+    "completed": true,
+    "duration_seconds": 8.056
+  },
+  "failure": null,
+  "permission_checks": {
+    "service_principal_database_access": true,
+    "source_access": true
+  },
+  "probe": {
+    "read_after_restart": true,
+    "read_before_restart": true,
+    "write": true
+  },
+  "resource_binding": {
+    "can_connect_and_create": true,
+    "postgres_present": true
+  },
+  "restart": {
+    "completed": true,
+    "duration_seconds": 150.911
+  },
+  "schema_version": 1,
+  "started_at": "2026-07-18T23:49:39.246446+00:00",
+  "status": "pass"
+}

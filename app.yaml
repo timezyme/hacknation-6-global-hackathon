@@ -1,0 +1,4 @@
+command: ["uvicorn", "app.main:app"]
+env:
+  - name: "TRUSTDESK_POSTGRES_ENDPOINT"
+    valueFrom: "postgres"
