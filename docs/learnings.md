@@ -1,6 +1,8 @@
 # Learnings
 
 - Report integration status as installed, connected, and verified. Do not call setup complete when process health passes but external authentication is still missing.
+- With 12 hours left in a hackathon MVP, review architecture only for demo blockers, internal contradictions that block implementation, and factual drift that would misdirect the remaining work. Defer production hardening and long-term extensibility concerns.
+- For architecture reviews, lead with the plain conclusion and the two or three changes that matter now. Keep evidence and line citations secondary; do not bury the decision in review terminology.
 
 ## Databricks MCP
 

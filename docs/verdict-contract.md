@@ -1,5 +1,11 @@
 # Verdict contract
 
+> **Superseded 2026-07-18.** The shipped contract now lives in [architecture.md](architecture.md)
+> ("The contract" section); execution order lives in [winning-demo-plan.md](winning-demo-plan.md).
+> Where this file disagrees — four marks instead of five (no `failed`), four verdicts instead of
+> five (no `could not check`), rung numbers as identity, the cross-product claim population — the
+> architecture wins. Kept unchanged below for history.
+
 The interface between the offline adjudication ladder and the live app. Written before the dataset
 was opened, deliberately: fixing the contract now lets the data work and the app work proceed
 without colliding, and makes disagreements surface as contract changes rather than silent rework.

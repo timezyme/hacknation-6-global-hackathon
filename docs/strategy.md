@@ -1,5 +1,10 @@
 # Strategy — Facility Trust Desk
 
+> **Superseded 2026-07-18.** The shipped contract lives in [architecture.md](architecture.md);
+> execution order and timeboxes live in [winning-demo-plan.md](winning-demo-plan.md). Where this
+> file disagrees — frontier-model rungs, retrieval and referee checks, the 60,528 cross product —
+> the architecture wins. Kept unchanged below for history.
+
 High-level plan for Challenge 04. What we are building, why it wins, and how we proceed.
 Grounded against the live workspace and current Databricks docs on 2026-07-18, not from memory.
 
