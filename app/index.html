@@ -675,6 +675,18 @@
       </div>`).join("")}</div>`;
   }
 
+  function similarHtml(detail) {
+    const similar = detail.similar;
+    if (!similar || !Array.isArray(similar.neighbors) || !similar.neighbors.length) return "";
+    return `<div class="claimbox">
+      <strong>Similar facility records</strong>
+      <span class="cite">${escapeHtml(similar.framing || "")}</span>
+      <ol>${similar.neighbors.map(neighbor => `<li>${escapeHtml(neighbor.facility_name || neighbor.facility_id)}
+        &middot; ${escapeHtml(neighbor.region || "region unknown")}
+        &middot; similarity ${(Number(neighbor.score) || 0).toFixed(2)}</li>`).join("")}</ol>
+    </div>`;
+  }
+
   function reviewHtml(facility) {
     const review = ui.reviews.get(facility.record_key);
     if (!review) {
@@ -701,6 +713,7 @@
       </div>
       <div class="why"><p><strong>Why this preview:</strong> ${facility.support_field_count} fields contain explicit free-check support, across ${facility.support_item_count} evidence items.</p></div>
       ${evidenceHtml(detail)}
+      ${similarHtml(detail)}
       <p class="cost">Settled support shown by <b>free checks only</b>, with <b>no model calls</b>. ${facility.unresolved_item_count} item(s) remain unresolved.</p>
       <div class="claimbox"><strong>Row-level source set</strong>${sourceSetHtml(detail.source_urls)}</div>
       <div class="unknown"><p><b>Still unknown:</b> ${escapeHtml(detail.unknown_summary)}</p></div>

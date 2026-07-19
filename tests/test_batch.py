@@ -338,3 +338,94 @@ def test_completed_run_retry_repairs_a_pointer_left_on_the_previous_run():
     assert publish_batch(sink, batch) is PublicationStatus.ALREADY_COMPLETE
     assert sink.active == batch.run_id
     assert sink.counts(batch.run_id) == batch.counts
+
+
+def test_similar_context_attaches_to_ranked_claims_only() -> None:
+    """Amendment unit 7: comparison context is fetched batch-time for ranked verdicts."""
+    import json
+
+    from trustdesk.batch import build_result_batch
+    from trustdesk.check_presence import PresenceCheck
+    from trustdesk.check_vocabulary import VocabularyCheck
+    from trustdesk.ingest import ingest_rows
+
+    requested: list[tuple[str, str]] = []
+
+    def similar(record, capability):  # matches SimilarCallback at runtime
+        requested.append((record.record_key, capability))
+        return {"framing": "comparison only", "neighbors": [{"facility_id": "fac-n", "score": 0.9}]}
+
+    rows = (
+        {
+            "unique_id": "vf-ranked",
+            "name": "Ranked Hospital",
+            "description": "Full intensive care unit with ventilator support on site.",
+            "capability": '["ICU", "intensive care"]',
+            "procedure": '["intensive care admission"]',
+            "equipment": '["ventilator"]',
+            "source_urls": '["https://example.org"]',
+            "address_stateOrRegion": "Kerala",
+            "address_country": "India",
+            "address_countryCode": "IN",
+            "_row_fingerprint": "f1",
+        },
+        {
+            "unique_id": "vf-sparse",
+            "name": "Sparse Hospital",
+            "description": None,
+            "capability": '["ICU"]',
+            "procedure": None,
+            "equipment": None,
+            "source_urls": None,
+            "address_stateOrRegion": "Kerala",
+            "address_country": "India",
+            "address_countryCode": "IN",
+            "_row_fingerprint": "f2",
+        },
+    )
+    batch = build_result_batch(
+        ingest_rows(rows),
+        (PresenceCheck(), VocabularyCheck()),
+        input_table_version=1,
+        similar=similar,
+        similar_config={"enabled": True, "scope": "ranked_claims_only", "version": "1.0.0"},
+    )
+    ranked = {v.record_key: v for v in batch.verdicts if v.verdict.value in ("strong_support", "limited_support")}
+    unranked = [v for v in batch.verdicts if v.verdict.value not in ("strong_support", "limited_support")]
+    assert ranked and unranked
+    assert {key for key, _ in requested} == set(ranked)
+    payloads = {r.record_key: json.loads(r.receipt_json) for r in batch.receipts}
+    for key in ranked:
+        assert payloads[key]["similar"]["neighbors"][0]["facility_id"] == "fac-n"
+    for verdict in unranked:
+        assert "similar" not in payloads[verdict.record_key]
+
+
+def test_similar_config_changes_the_run_id() -> None:
+    from trustdesk.batch import build_result_batch
+    from trustdesk.check_presence import PresenceCheck
+    from trustdesk.ingest import ingest_rows
+
+    rows = (
+        {
+            "unique_id": "vf-1",
+            "name": "Hospital",
+            "description": "ICU",
+            "capability": '["ICU"]',
+            "procedure": None,
+            "equipment": None,
+            "source_urls": None,
+            "address_stateOrRegion": "Kerala",
+            "address_country": "India",
+            "address_countryCode": "IN",
+            "_row_fingerprint": "f1",
+        },
+    )
+    base = build_result_batch(ingest_rows(rows), (PresenceCheck(),), input_table_version=1)
+    enabled = build_result_batch(
+        ingest_rows(rows),
+        (PresenceCheck(),),
+        input_table_version=1,
+        similar_config={"enabled": True, "scope": "ranked_claims_only", "version": "1.0.0"},
+    )
+    assert base.run_id != enabled.run_id

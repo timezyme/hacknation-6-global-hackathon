@@ -24,6 +24,7 @@ from trustdesk.batch import (
     BatchCounts,
     RefereeCallback,
     ResultBatch,
+    SimilarCallback,
     build_result_batch,
 )
 from trustdesk.ingest import (
@@ -654,6 +655,49 @@ def _configured_referee() -> tuple[
     return referee, metadata
 
 
+def _configured_similar(workspace: WorkspaceClient) -> tuple[SimilarCallback | None, Mapping[str, object]]:
+    """Similar-facility context for ranked claims; any failure degrades to no context."""
+    try:
+        from trustdesk.similar import DEFAULT_INDEX_NAME, FRAMING, DatabricksNeighborClient, similar_context
+    except ImportError:
+        return None, {"enabled": False, "scope": "none", "version": "none"}
+
+    client = DatabricksNeighborClient(api=workspace.vector_search_indexes)
+    metadata = {
+        "enabled": True,
+        "framing": FRAMING,
+        "index": DEFAULT_INDEX_NAME,
+        "scope": "ranked_claims_only",
+        "version": "1.0.0",
+    }
+
+    def similar(record: object, capability: str) -> Mapping[str, object] | None:
+        from trustdesk.models import FacilityRecord
+
+        if not isinstance(record, FacilityRecord):
+            return None
+        try:
+            context = similar_context(record, capability, client)
+        except Exception:
+            return None
+        if not context.neighbors:
+            return None
+        return {
+            "framing": context.framing,
+            "neighbors": [
+                {
+                    "facility_id": neighbor.facility_id,
+                    "facility_name": neighbor.facility_name,
+                    "region": neighbor.region,
+                    "score": neighbor.score,
+                }
+                for neighbor in context.neighbors
+            ],
+        }
+
+    return similar, metadata
+
+
 def run_live(profile: str = DEFAULT_PROFILE) -> dict[str, object]:
     workspace = WorkspaceClient(profile=profile)
     warehouse_id = _warehouse_id(workspace)
@@ -663,12 +707,15 @@ def run_live(profile: str = DEFAULT_PROFILE) -> dict[str, object]:
     if version_before != version_after:
         raise RuntimeError("source table changed during batch read")
     referee, referee_config = _configured_referee()
+    similar, similar_config = _configured_similar(workspace)
     batch = build_result_batch(
         ingest_rows(rows),
         load_checks(),
         input_table_version=version_before,
         referee=referee,
         referee_config=referee_config,
+        similar=similar,
+        similar_config=similar_config,
     )
     sink = DatabricksSink(workspace, warehouse_id)
     status = publish_batch(sink, batch)

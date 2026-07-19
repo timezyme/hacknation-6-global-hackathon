@@ -54,6 +54,7 @@ class FacilityData:
     receipt: tuple[dict[str, Any], ...]
     source_urls: tuple[str, ...]
     unknown_summary: str
+    similar: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -175,6 +176,7 @@ def facility_from_batch_row(row: Mapping[str, Any]) -> FacilityData:
     raw_receipt = row.get("receipt_json")
     items: list[Any] = []
     source_urls: tuple[str, ...] = ()
+    similar: dict[str, Any] | None = None
     if isinstance(raw_receipt, str) and raw_receipt:
         payload = json.loads(decode_receipt(raw_receipt))
         if not isinstance(payload, dict):
@@ -185,6 +187,8 @@ def facility_from_batch_row(row: Mapping[str, Any]) -> FacilityData:
         items = raw_items if isinstance(raw_items, list) else []
         sources = payload.get("source_urls")
         source_urls = tuple(sources) if isinstance(sources, list) else ()
+        raw_similar = payload.get("similar")
+        similar = raw_similar if isinstance(raw_similar, dict) else None
     receipt = translate_receipt_items(items)
     marks = _marks_map(row)
     unresolved = sum(1 for item in receipt if item.get("outcome") != "decision")
@@ -205,6 +209,7 @@ def facility_from_batch_row(row: Mapping[str, Any]) -> FacilityData:
         receipt=receipt,
         source_urls=source_urls,
         unknown_summary=_unknown_summary(marks, unresolved),
+        similar=similar,
     )
 
 

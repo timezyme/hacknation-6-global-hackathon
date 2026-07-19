@@ -396,6 +396,7 @@ def _detail(facility: FacilityData) -> dict[str, object]:
         "receipt": facility.receipt,
         "source_urls": facility.source_urls,
         "unknown_summary": facility.unknown_summary,
+        "similar": facility.similar,
     }
 
 

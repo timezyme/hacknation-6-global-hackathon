@@ -611,9 +611,11 @@ Produce the exact data the app will read and prevent partial batches from reachi
 5. Record expected count, actual count, check configuration hash, model and prompt version, input table
    version, timestamps, and completion status in the manifest.
 6. Publish a run to the app only after counts and checks pass. Preserve the previous successful run.
-7. *(amendment — not implemented)* Fetch similar-facility context from the vector index at publish
-   time, through `src/trustdesk/similar.py`, and store it with each receipt. Batch-time only; a
-   fetch failure degrades to "context unavailable", never blocks publication.
+7. *(amendment — implemented)* Fetch similar-facility context from the vector index at publish
+   time, through `src/trustdesk/similar.py`, and store it with each receipt. Batch-time only,
+   ranked claims only; a fetch failure degrades to "context unavailable", never blocks
+   publication. Wired via a `SimilarCallback` mirroring the referee callback; enabling it changes
+   the run id through the config hash.
 
 ### Files, maximum five
 
@@ -702,15 +704,14 @@ restart. Proceed to Phase 8 when the gate is green.
 
 ## Phase 8 — Harden the walking-skeleton interface
 
-**Status: implemented except similar-context display.** All five verdict states render; unranked
+**Status: implemented.** All five verdict states render; unranked
 states appear in labelled sections outside the ranking; referee second opinions and attempt trails
 show per decision; the measurements panel serves the pilot tables (with confidence intervals) and
 referee totals from `/api/methods`; CSP and security headers are enforced server-side; the
 one-minute workflow has an e2e test covering unresolved and processing-failure records. The first
 full live batch is published (10,505 verdicts: 1,174 strong support, 9,331 not enough data — no
 conflicting or could-not-check rows exist in this corpus) and the batch read path is verified
-against it. Similar-facility context still needs batch wiring (Phase 6 amendment unit 7) before
-its display can land.
+against it. Similar-facility context is wired batch-side and rendered in the receipt panel.
 
 ### Objective
 
@@ -828,8 +829,8 @@ demonstrates the required workflow from a cold start.
 - [ ] The one-minute demo completes three consecutive times.
 - [ ] *(amendment — not implemented)* Every free-check decision shows a referee outcome or an
   honest "not double-checked" label.
-- [ ] *(amendment — attempt trail done; similar-facility context not implemented)* Receipts show
-  the attempt trail and similar-facility context framed as comparison, never verification.
+- [ ] *(amendment — implemented; verify on the live run)* Receipts show the attempt trail and
+  similar-facility context framed as comparison, never verification.
 - [ ] *(amendment — not implemented)* The demo examples include at least one non-ranked honesty
   state.
 - [ ] *(amendment — not implemented)* The submission and demo name the answered research questions

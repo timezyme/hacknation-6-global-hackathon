@@ -26,6 +26,10 @@ from trustdesk.models import Claim, FacilityRecord, IngestBatch, QuarantinedReco
 PIPELINE_VERSION = "1.0.0"
 RefereePayload = Mapping[EvidenceCoordinate, Mapping[str, str]]
 RefereeCallback = Callable[[str, tuple[CheckAttempt, ...]], RefereePayload]
+# Similar-facility comparison context, fetched batch-time for ranked claims only.
+# Returns a receipt-ready mapping or None when context is unavailable.
+SimilarCallback = Callable[[FacilityRecord, str], Mapping[str, object] | None]
+RANKED_VERDICTS = (Verdict.STRONG_SUPPORT, Verdict.LIMITED_SUPPORT)
 _UNREFEREED = MappingProxyType(
     {
         "method": "none",
@@ -170,6 +174,7 @@ def _receipt(
     run_id: str,
     computed_at: datetime,
     referee_findings: RefereePayload,
+    similar_context: Mapping[str, object] | None,
 ) -> ReceiptResult:
     decisions = {attempt.coordinate: attempt for attempt in result.decisions}
     history: dict[EvidenceCoordinate, list[CheckAttempt]] = defaultdict(list)
@@ -201,7 +206,7 @@ def _receipt(
                 "text": item.text,
             }
         )
-    payload = {
+    payload: dict[str, object] = {
         "capability": claim.capability,
         "computed_at": computed_at.isoformat(),
         "facility_id": record.facility_id,
@@ -211,6 +216,8 @@ def _receipt(
         "source_scope": "row_level_set",
         "source_urls": list(record.source_urls),
     }
+    if similar_context is not None:
+        payload["similar"] = dict(similar_context)
     return ReceiptResult(
         record_key=record.record_key,
         capability=claim.capability,
@@ -227,6 +234,7 @@ def _accepted_claim(
     run_id: str,
     computed_at: datetime,
     referee: RefereeCallback | None,
+    similar: SimilarCallback | None,
 ) -> tuple[VerdictResult, ReceiptResult]:
     evidence = ClaimEvidence.from_record(claim, record)
     result = run_checks(evidence, checks)
@@ -262,6 +270,11 @@ def _accepted_claim(
         rank=None,
         computed_at=computed_at,
     )
+    similar_context: Mapping[str, object] | None = None
+    if similar is not None and verdict.verdict in RANKED_VERDICTS:
+        similar_context = similar(record, claim.capability)
+        if similar_context is not None and not isinstance(similar_context, Mapping):
+            raise ValueError("similar context must be a mapping or None")
     return verdict, _receipt(
         record,
         claim,
@@ -270,6 +283,7 @@ def _accepted_claim(
         run_id,
         computed_at,
         referee_findings,
+        similar_context,
     )
 
 
@@ -330,6 +344,8 @@ def build_result_batch(
     pipeline_version: str = PIPELINE_VERSION,
     referee: RefereeCallback | None = None,
     referee_config: Mapping[str, object] | None = None,
+    similar: SimilarCallback | None = None,
+    similar_config: Mapping[str, object] | None = None,
 ) -> ResultBatch:
     """Build all rows for one immutable source/configuration snapshot."""
     computed_at = computed_at or datetime.now(UTC)
@@ -354,6 +370,8 @@ def build_result_batch(
         "checks": check_config,
         "referee": referee_config
         or {"enabled": False, "mode": "none", "version": "none"},
+        "similar": similar_config
+        or {"enabled": False, "scope": "none", "version": "none"},
     }
     check_config_json = _json(pipeline_config)
     check_config_hash = _hash(pipeline_config)
@@ -406,6 +424,7 @@ def build_result_batch(
                 run_id,
                 computed_at,
                 referee,
+                similar,
             )
         elif claim.record_key in quarantined:
             record = quarantined[claim.record_key]
