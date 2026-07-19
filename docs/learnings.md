@@ -4,6 +4,7 @@
 - With 12 hours left in a hackathon MVP, review architecture only for demo blockers, internal contradictions that block implementation, and factual drift that would misdirect the remaining work. Defer production hardening and long-term extensibility concerns.
 - For architecture reviews, lead with the plain conclusion and the two or three changes that matter now. Keep evidence and line citations secondary; do not bury the decision in review terminology.
 - For this hackathon MVP, treat security as visible trust hygiene, not a production-hardening requirement. Preserve the settled design and demo behavior; do not expand scope with production controls.
+- At every phase handoff, state the next phase, why it is next, and whether it starts automatically. Never report only the completed phase and leave the user to ask what happens next.
 
 ## Databricks MCP
 
