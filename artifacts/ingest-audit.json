@@ -1,0 +1,50 @@
+{
+  "claims": {
+    "asserted_claims": 10505,
+    "by_capability": {
+      "ICU": 1684,
+      "NICU": 598,
+      "emergency": 3255,
+      "maternity": 2791,
+      "oncology": 1135,
+      "trauma": 1042
+    }
+  },
+  "live_reconciliation": {
+    "documented_quarantine_rows": 3,
+    "matches_measured_source_contract": true,
+    "observed_quarantine_rows": 3
+  },
+  "records": {
+    "accepted_input_rows": 10085,
+    "canonical_records": 10074,
+    "duplicate_rows_collapsed": 11,
+    "indexed_records": 10077,
+    "malformed_array_rows": 3,
+    "quarantine_reasons": {
+      "invalid_array": 3
+    },
+    "quarantined_rows": 3,
+    "unique_record_keys": 10077
+  },
+  "region": {
+    "alias_values": 5,
+    "canonical_values": 36,
+    "resolved_records": 9646,
+    "source_field": "address_stateOrRegion",
+    "unresolved_records": 431
+  },
+  "schema_version": 1,
+  "source": {
+    "input_rows": 10088,
+    "table": "virtue_foundation_dais_2026.virtue_foundation_dataset.facilities"
+  },
+  "status": "pass",
+  "validation": {
+    "claim_keys_known": true,
+    "claims_unique": true,
+    "duplicate_count_reconciled": true,
+    "input_count_reconciled": true,
+    "record_keys_unique": true
+  }
+}
