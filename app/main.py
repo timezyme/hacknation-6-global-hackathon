@@ -464,9 +464,24 @@ def default_result_store() -> ResultStore:
     return DatabricksResultStore()
 
 
+CONTENT_SECURITY_POLICY = (
+    "default-src 'none'; connect-src 'self'; img-src 'self' data:; "
+    "style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; "
+    "form-action 'self'; frame-ancestors 'none'"
+)
+
+
 def create_app(result_store: ResultStore, review_store: ReviewStore) -> FastAPI:
     """Create the app around replaceable Databricks and Lakebase boundaries."""
     application = FastAPI(title="Facility Trust Desk", docs_url=None, redoc_url=None)
+
+    @application.middleware("http")
+    async def security_headers(request: Any, call_next: Any) -> Any:
+        response = await call_next(request)
+        response.headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        return response
 
     @application.get("/", include_in_schema=False)
     def index() -> FileResponse:

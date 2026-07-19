@@ -354,6 +354,23 @@
   }
   .ev-trail b { font-weight: 600; color: var(--indigo); }
 
+  /* The referee's second opinion about a decision. */
+  .ref { margin: 5px 0 0; font-size: 12px; line-height: 1.45; }
+  .ref-ok    b { color: var(--ok); }
+  .ref-clash b { color: var(--clash); }
+  .ref-void  b { color: var(--ink-3); }
+
+  /* Measurements panel: per-check pilot numbers and referee totals. */
+  #methods-wrap { margin-top: 18px; }
+  .methods-table { overflow-x: auto; }
+  .methods-table table { border-collapse: collapse; font-size: 12px; width: 100%; }
+  .methods-table th, .methods-table td {
+    text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line-soft);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .methods-table th { color: var(--ink-2); font-weight: 600; }
+  .methods-note { font-size: 12px; color: var(--ink-3); margin: 8px 0 0; }
+
   .cost {
     margin: 0; padding: 9px 12px;
     background: var(--card-sunk); border: 1px solid var(--line-soft);
@@ -497,8 +514,8 @@
     <details class="rule">
       <summary>How the assessment is decided</summary>
       <ol>
-        <li>Any field could not be read &rarr; <b>Could not check</b>.</li>
         <li>Any field contradicts the claim &rarr; <b>Conflicting evidence</b>.</li>
+        <li>Any field could not be read &rarr; <b>Could not check</b>.</li>
         <li>Fewer than 3 of the 4 fields hold any data &rarr; <b>Not enough data</b>.</li>
         <li>3 or more fields back the claim &rarr; <b>Strong record support</b>.</li>
         <li>Anything else &rarr; <b>Limited record support</b>.</li>
@@ -517,6 +534,12 @@
 
     <div id="assessed-wrap"></div>
     <div id="unrated-wrap"></div>
+    <section id="methods-wrap">
+      <details class="rule" id="methods">
+        <summary data-testid="open-measurements">Measurements &mdash; how much to trust each check</summary>
+        <div id="methods-body"><p class="empty">Loading measurements&hellip;</p></div>
+      </details>
+    </section>
   </main>
 </div>
 
@@ -529,11 +552,22 @@
   ];
   const VERDICT = {
     strong_support: { label: "Strong record support", cls: "v-ok" },
-    limited_support: { label: "Limited record support", cls: "v-thin" }
+    limited_support: { label: "Limited record support", cls: "v-thin" },
+    conflicting: { label: "Conflicting evidence", cls: "v-clash" },
+    not_enough_data: { label: "Not enough evidence", cls: "v-void" },
+    could_not_check: { label: "Could not check", cls: "v-void" }
   };
+  const UNRANKED_SECTIONS = [
+    ["conflicting", "Conflicting evidence", "A field says the opposite. Read the receipt before trusting either side."],
+    ["not_enough_data", "Not enough evidence", "Too little data to judge. A data desert is not a medical desert."],
+    ["could_not_check", "Could not check", "Our processing failed, not the facility. Never hidden, never ranked low."]
+  ];
   const MARK_TEXT = {
     supports: "backs the claim",
+    silent: "says nothing about it",
     missing: "no data at all",
+    conflicts: "contradicts the claim",
+    failed: "could not be processed",
     unresolved: "unresolved by free checks"
   };
   const ui = {
@@ -541,9 +575,14 @@
     capability: null,
     region: null,
     facilities: [],
+    unranked: [],
     receipts: new Map(),
     reviews: new Map()
   };
+
+  function findFacility(recordKey) {
+    return [...ui.facilities, ...ui.unranked].find(item => item.record_key === recordKey);
+  }
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>'"]/g, character => ({
@@ -552,7 +591,13 @@
   }
 
   function markClass(mark) {
-    return mark === "unresolved" ? "silent" : mark;
+    if (mark === "unresolved") return "silent";
+    if (mark === "failed") return "uncheckable";
+    return mark;
+  }
+
+  function markText(mark) {
+    return MARK_TEXT[mark] || mark;
   }
 
   function regionsFor(capability) {
@@ -563,9 +608,9 @@
     return `<span class="meter">${FIELDS.map(([field, label]) => {
       const mark = marks[field] || "unresolved";
       return `<span class="mkcell">
-        <span class="mk mk-${markClass(mark)}" title="${escapeHtml(label)}: ${escapeHtml(MARK_TEXT[mark])}"></span>
+        <span class="mk mk-${markClass(mark)}" title="${escapeHtml(label)}: ${escapeHtml(markText(mark))}"></span>
         <span class="mklbl">${escapeHtml(label)}</span>
-        <span class="sr">${escapeHtml(label)}: ${escapeHtml(MARK_TEXT[mark])}.</span>
+        <span class="sr">${escapeHtml(label)}: ${escapeHtml(markText(mark))}.</span>
       </span>`;
     }).join("")}</span>`;
   }
@@ -589,6 +634,19 @@
     processing_failure: "failed",
   };
 
+  const REFEREE_TEXT = {
+    agree: { label: "Second opinion: agrees", cls: "ref-ok" },
+    disagree: { label: "Checks disagree on this decision", cls: "ref-clash" },
+    could_not_referee: { label: "Not double-checked", cls: "ref-void" }
+  };
+
+  function refereeHtml(item) {
+    const referee = item.referee;
+    if (!referee || !REFEREE_TEXT[referee.outcome]) return "";
+    const meta = REFEREE_TEXT[referee.outcome];
+    return `<p class="ref ${meta.cls}"><b>${escapeHtml(meta.label)}.</b> ${escapeHtml(referee.rationale || "")}</p>`;
+  }
+
   function attemptTrailHtml(item) {
     const attempts = Array.isArray(item.attempts) ? item.attempts : [];
     if (attempts.length < 2) return "";
@@ -602,7 +660,7 @@
     const decided = detail.receipt.filter(item => item.outcome === "decision");
     return `<div class="ev">${decided.map(item => `
       <div class="ev-item">
-        <span class="mk mk-${markClass(item.mark)}" title="${escapeHtml(MARK_TEXT[item.mark])}"></span>
+        <span class="mk mk-${markClass(item.mark)}" title="${escapeHtml(markText(item.mark))}"></span>
         <span class="ev-field">${escapeHtml(item.field)} [${item.item_index}]</span>
         <div>
           <p class="ev-txt">${item.text === null ? "<em>Empty.</em>" : escapeHtml(item.text)}</p>
@@ -612,6 +670,7 @@
             <span class="by-note">v${escapeHtml(item.check_version)} &middot; ${escapeHtml(item.rationale)}</span>
           </p>
           ${attemptTrailHtml(item)}
+          ${refereeHtml(item)}
         </div>
       </div>`).join("")}</div>`;
   }
@@ -649,10 +708,11 @@
   }
 
   function rowHtml(facility) {
-    const verdict = VERDICT[facility.support_tier];
+    const verdict = VERDICT[facility.support_tier] || { label: facility.support_tier, cls: "v-void" };
+    const ranked = VERDICT[facility.support_tier] && ["strong_support", "limited_support"].includes(facility.support_tier);
     return `<li class="row" data-key="${escapeHtml(facility.record_key)}">
       <button class="row-btn" aria-expanded="false" data-testid="facility-row">
-        <span class="rank">${String(facility.rank).padStart(2, "0")}</span>
+        <span class="rank">${ranked ? escapeHtml(String(facility.rank).padStart(2, "0")) : "&mdash;"}</span>
         <span class="nm">
           <strong>${escapeHtml(facility.facility_name)}</strong>
           <span>${escapeHtml(facility.region)} &middot; record ${escapeHtml(facility.record_key)}</span>
@@ -676,7 +736,7 @@
 
   function paintResults() {
     document.getElementById("title").textContent = `Records claiming ${ui.capability} · ${ui.region}`;
-    document.getElementById("tally").textContent = `${ui.facilities.length} ranked candidate${ui.facilities.length === 1 ? "" : "s"} · free-check preview`;
+    document.getElementById("tally").textContent = `${ui.facilities.length} ranked candidate${ui.facilities.length === 1 ? "" : "s"} · ${ui.unranked.length} shown outside the ranking`;
     document.getElementById("assessed-wrap").innerHTML = ui.facilities.length ? `
       <div class="list-head"><span></span><span>Facility</span>
         <span class="head-fields">${FIELDS.map(([, label]) => `<span>${label}</span>`).join("")}</span>
@@ -684,8 +744,17 @@
       </div>
       <ol class="list">${ui.facilities.map(rowHtml).join("")}</ol>`
       : `<p class="empty">No selected candidates for ${escapeHtml(ui.capability)} in ${escapeHtml(ui.region)}. Choose another region.</p>`;
-    document.getElementById("unrated-wrap").innerHTML = `<div class="band">
-      <h3>This is a bounded free-check preview</h3>
+    const sections = UNRANKED_SECTIONS.map(([tier, heading, explainer]) => {
+      const members = ui.unranked.filter(item => item.support_tier === tier);
+      if (!members.length) return "";
+      return `<div class="band">
+        <h3>${escapeHtml(heading)} &middot; ${members.length}</h3>
+        <p>${escapeHtml(explainer)} Outside the ranking on purpose &mdash; never a misleading low rank.</p>
+      </div>
+      <ol class="list">${members.map(rowHtml).join("")}</ol>`;
+    }).join("");
+    document.getElementById("unrated-wrap").innerHTML = sections + `<div class="band">
+      <h3>About these ranks</h3>
       <p>Unresolved evidence stays visible. These ranks describe record support, not facility quality or current clinical capability.</p>
     </div>`;
   }
@@ -696,6 +765,7 @@
     if (!response.ok) throw new Error("results unavailable");
     const payload = await response.json();
     ui.facilities = payload.facilities;
+    ui.unranked = payload.unranked || [];
     paintResults();
   }
 
@@ -705,7 +775,7 @@
   }
 
   async function openReceipt(row) {
-    const facility = ui.facilities.find(item => item.record_key === row.dataset.key);
+    const facility = findFacility(row.dataset.key);
     const detailBox = row.querySelector(".detail");
     const button = row.querySelector(".row-btn");
     if (!detailBox.hidden) {
@@ -729,7 +799,7 @@
   }
 
   function openOverride(row) {
-    const facility = ui.facilities.find(item => item.record_key === row.dataset.key);
+    const facility = findFacility(row.dataset.key);
     const saved = ui.reviews.get(facility.record_key);
     row.querySelector(".ovr").innerHTML = `<div class="form">
       <span class="lbl">What do you know that the record doesn&rsquo;t?</span>
@@ -743,7 +813,7 @@
   }
 
   async function saveReview(row, decision) {
-    const facility = ui.facilities.find(item => item.record_key === row.dataset.key);
+    const facility = findFacility(row.dataset.key);
     const note = decision === "overridden" ? row.querySelector("textarea").value.trim() : null;
     if (decision === "overridden" && !note) return;
     const response = await fetch("/api/reviews", {
@@ -779,7 +849,7 @@
       if (event.target.closest('[data-act="confirm"]')) return await saveReview(row, "confirmed");
       if (event.target.closest('[data-act="open-override"]')) return openOverride(row);
       if (event.target.closest('[data-act="cancel-override"]')) {
-        const facility = ui.facilities.find(item => item.record_key === row.dataset.key);
+        const facility = findFacility(row.dataset.key);
         row.querySelector(".ovr").outerHTML = reviewHtml(facility);
         return;
       }
@@ -792,6 +862,61 @@
   document.getElementById("region").addEventListener("change", async event => {
     ui.region = event.target.value;
     await loadResults();
+  });
+
+  function formatPercent(value) {
+    return value === null || value === undefined ? "&mdash;" : `${(value * 100).toFixed(0)}%`;
+  }
+
+  function formatCi(ci) {
+    if (!Array.isArray(ci) || ci.length !== 2) return "&mdash;";
+    return `${(ci[0] * 100).toFixed(0)}&ndash;${(ci[1] * 100).toFixed(0)}%`;
+  }
+
+  function pilotTableHtml(split, byCapability) {
+    const rows = [];
+    for (const [capability, checks] of Object.entries(byCapability || {})) {
+      for (const [check, cell] of Object.entries(checks)) {
+        rows.push(`<tr><td>${escapeHtml(capability)}</td><td>${escapeHtml(check)}</td>
+          <td>${formatPercent(cell.selective_coverage)}</td><td>${formatCi(cell.coverage_95_ci)}</td>
+          <td>${formatPercent(cell.decision_precision)}</td><td>${formatCi(cell.precision_95_ci)}</td>
+          <td>${cell.errors ?? 0}</td></tr>`);
+      }
+    }
+    if (!rows.length) return "";
+    return `<h3>${escapeHtml(split)} split</h3><div class="methods-table"><table>
+      <thead><tr><th>Capability</th><th>Check</th><th>Coverage</th><th>95% CI</th>
+      <th>Precision</th><th>95% CI</th><th>Errors</th></tr></thead>
+      <tbody>${rows.join("")}</tbody></table></div>`;
+  }
+
+  function refereeSummaryHtml(referee) {
+    if (!referee || !referee.totals) return "";
+    const totals = referee.totals;
+    return `<h3>Referee &mdash; second opinions on ${referee.decisions_refereed} decisions</h3>
+      <p class="methods-note">${totals.agree} independently corroborated &middot; ${totals.disagree} disagreements
+      &middot; ${totals.could_not_referee} honestly not double-checked (referee v${escapeHtml(referee.referee_version || "")}).</p>`;
+  }
+
+  let methodsLoaded = false;
+  document.getElementById("methods").addEventListener("toggle", async event => {
+    if (!event.target.open || methodsLoaded) return;
+    const body = document.getElementById("methods-body");
+    try {
+      const response = await fetch("/api/methods");
+      if (!response.ok) throw new Error("measurements unavailable");
+      const payload = await response.json();
+      const splits = payload.pilot?.splits || {};
+      body.innerHTML = (
+        `<p class="methods-note">${escapeHtml(payload.note || "")}</p>` +
+        pilotTableHtml("development", splits.development?.by_capability) +
+        pilotTableHtml("holdout", splits.holdout?.by_capability) +
+        refereeSummaryHtml(payload.referee)
+      ) || "<p class=\"empty\">No measurements are available yet.</p>";
+      methodsLoaded = true;
+    } catch (error) {
+      body.innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`;
+    }
   });
 
   (async () => {

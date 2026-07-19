@@ -702,6 +702,16 @@ restart. Proceed to Phase 8 when the gate is green.
 
 ## Phase 8 — Harden the walking-skeleton interface
 
+**Status: implemented except similar-context display.** All five verdict states render; unranked
+states appear in labelled sections outside the ranking; referee second opinions and attempt trails
+show per decision; the measurements panel serves the pilot tables (with confidence intervals) and
+referee totals from `/api/methods`; CSP and security headers are enforced server-side; the
+one-minute workflow has an e2e test covering unresolved and processing-failure records. The first
+full live batch is published (10,505 verdicts: 1,174 strong support, 9,331 not enough data — no
+conflicting or could-not-check rows exist in this corpus) and the batch read path is verified
+against it. Similar-facility context still needs batch wiring (Phase 6 amendment unit 7) before
+its display can land.
+
 ### Objective
 
 Keep the approved visual design while deepening evidence and evaluation displays.
