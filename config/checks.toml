@@ -1,0 +1,4 @@
+checks = [
+  "trustdesk.check_presence:PresenceCheck",
+  "trustdesk.check_vocabulary:VocabularyCheck",
+]
