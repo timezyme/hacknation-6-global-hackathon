@@ -760,7 +760,7 @@ the gate is green.
 
 ## Phase 9 — Deploy, restart, rehearse, and freeze the demo
 
-**Status: deployed and verified; freeze approval and rehearsals pending.** Staged deploy done
+**Status: FROZEN — approved 2026-07-19.** Code and data on the demo path are locked; only checks and rehearsals from here. Staged deploy done
 (new code on legacy source, then `TRUSTDESK_RESULTS_SOURCE=batch`); `scripts/smoke_demo.py`
 passes before and after a cold restart; a pre-restart review persisted with its snapshot; the
 app service principal was granted SELECT on the three batch tables. Evidence:
