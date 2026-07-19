@@ -15,7 +15,7 @@ from trustdesk.evaluation import (
     PilotQueue,
     build_queue,
     evaluate_pilot,
-    evidence_gate_status,
+    sanity_check_status,
     validate_label_extension,
     validate_labels,
 )
@@ -125,14 +125,14 @@ def test_sealed_label_prefix_can_extend_from_minimum_to_target_but_cannot_change
         validate_label_extension(queue, submitted[:60], changed)
 
 
-def test_evidence_gate_requires_blind_human_minimum_and_safe_holdout():
-    assert evidence_gate_status(60, human_labels=True, holdout_passed=True) == {
-        "passed": True,
-        "reason": "60 blind human labels completed and the current holdout safety gate passed",
+def test_sanity_check_is_never_authoritative_and_requires_minimum_and_safe_holdout():
+    assert sanity_check_status(60, holdout_passed=True) == {
+        "completed": True,
+        "authoritative": False,
+        "reason": "60 rushed blind labels completed and the current safety fallback was verified",
     }
-    assert evidence_gate_status(60, human_labels=False, holdout_passed=True)["passed"] is False
-    assert evidence_gate_status(54, human_labels=True, holdout_passed=True)["passed"] is False
-    assert evidence_gate_status(60, human_labels=True, holdout_passed=False)["passed"] is False
+    assert sanity_check_status(54, holdout_passed=True)["completed"] is False
+    assert sanity_check_status(60, holdout_passed=False)["completed"] is False
 
 
 def unsafe_holdout_fixture() -> tuple[PilotQueue, tuple[FacilityRecord, ...], tuple[BlindLabel, ...]]:

@@ -4,11 +4,7 @@
     "labelled_items": 60,
     "target_bound_refutations": 0
   },
-  "evidence_gate": {
-    "passed": true,
-    "reason": "60 blind human labels completed and the current holdout safety gate passed"
-  },
-  "generated_at": "2026-07-19T02:30:23.090802+00:00",
+  "generated_at": "2026-07-19T02:37:02.641148+00:00",
   "hashes": {
     "development_manifest": "e64c3fdcc09d8b709a63380d390c675e3b249aea5fb158bff198dd2713edcf8a",
     "holdout_manifest": "67efe3a8fac08b6c99bde16d3e995c577be805a869c5734f7487e04d826c8032",
@@ -35,8 +31,9 @@
     "unsafe_checks": []
   },
   "labeling": {
+    "authoritative": false,
     "blind": true,
-    "human_review": true,
+    "review_kind": "rushed_human_sanity_check",
     "reviewer_type": "human_reviewer",
     "reviewers": [
       "human_reviewer"
@@ -87,6 +84,11 @@
     "requires_model": 120
   },
   "pilot_id": "pilot-e8e4ef3b40b10136-human-v1",
+  "sanity_check": {
+    "authoritative": false,
+    "completed": true,
+    "reason": "60 rushed blind labels completed and the current safety fallback was verified"
+  },
   "schema_version": 1,
   "splits": {
     "development": {
@@ -589,5 +591,5 @@
       "denominator": 24
     }
   },
-  "status": "complete_preliminary"
+  "status": "sanity_check_complete"
 }

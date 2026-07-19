@@ -1,14 +1,14 @@
-# Blind-labelled free-check pilot
+# Free-check sanity check
 
-**Status:** `complete_preliminary`
+**Status:** `sanity_check_complete`
 
-**Evidence gate:** GREEN — 60 blind human labels completed and the current holdout safety gate passed.
+**Sanity check:** COMPLETE — 60 rushed blind labels completed and the current safety fallback was verified.
 
-**Decision:** GO for the free-check demo; do not scale the model path at this observed escalation rate.
+**Decision:** MOVE ON with the free-check demo; do not scale the model path at this escalation rate.
 
 60 evidence items were labelled in complete six-capability waves (36 development, 24 holdout; minimum 60).
-A human reviewer saw each selected row item without the system prediction. Reviewer provenance was read from the sealed Delta rows.
-This is preliminary evidence-label agreement, not final accuracy or proof of current clinical capability.
+A rushed human reviewer saw each selected row item without the system prediction.
+This sanity check is not authoritative, ground truth, final accuracy, or proof of current capability.
 
 ## Holdout safety action
 

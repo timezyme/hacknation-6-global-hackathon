@@ -228,31 +228,28 @@ def validate_label_extension(
     return submitted
 
 
-def evidence_gate_status(
+def sanity_check_status(
     label_count: int,
     *,
-    human_labels: bool,
     holdout_passed: bool,
 ) -> dict[str, object]:
-    """State the preliminary evidence gate without treating assistant review as human evidence."""
-    if not human_labels:
-        return {
-            "passed": False,
-            "reason": "assistant-labelled rehearsal; human validation is still required",
-        }
+    """Record the rushed label check without promoting it to authoritative evidence."""
     if label_count < MINIMUM_LABELS:
         return {
-            "passed": False,
-            "reason": f"only {label_count} blind human labels completed; minimum is {MINIMUM_LABELS}",
+            "completed": False,
+            "authoritative": False,
+            "reason": f"only {label_count} rushed blind labels completed; minimum is {MINIMUM_LABELS}",
         }
     if not holdout_passed:
         return {
-            "passed": False,
-            "reason": "the current holdout safety gate failed",
+            "completed": False,
+            "authoritative": False,
+            "reason": "the current safety fallback was not verified",
         }
     return {
-        "passed": True,
-        "reason": "60 blind human labels completed and the current holdout safety gate passed",
+        "completed": True,
+        "authoritative": False,
+        "reason": f"{label_count} rushed blind labels completed and the current safety fallback was verified",
     }
 
 

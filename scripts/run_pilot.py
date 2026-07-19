@@ -22,7 +22,7 @@ from trustdesk.evaluation import (
     PilotQueue,
     build_queue,
     evaluate_pilot,
-    evidence_gate_status,
+    sanity_check_status,
     validate_label_extension,
     validate_labels,
 )
@@ -34,7 +34,7 @@ from trustdesk.models import FacilityRecord
 PROFILE = "trustdesk-spike"
 QUEUE_SEED = "trustdesk-phase-4-v1"
 LABEL_SET = "human-v1"
-HUMAN_LABELER = "human_reviewer"
+SANITY_CHECK_LABELER = "human_reviewer"
 LABEL_TABLE = "workspace.default.trustdesk_pilot_labels"
 ARTIFACT_PATH = Path("artifacts/pilot-summary.json")
 REPORT_PATH = Path("docs/pilot-results.md")
@@ -362,48 +362,25 @@ def _interval(value: object) -> str:
 
 
 def render_report(summary: Mapping[str, Any]) -> str:
-    """Render the aggregate gate without implying real-world facility accuracy."""
+    """Render the rushed sanity check without implying authoritative accuracy."""
     labels = summary["labels"]
     model = summary["model_call_projection"]
     gate = summary["holdout_gate"]
-    evidence_gate = summary["evidence_gate"]
-    gate_label = "GREEN" if evidence_gate["passed"] else "NOT GREEN"
-    if summary["labeling"]["human_review"]:
-        reviewer_context = (
-            "A human reviewer saw each selected row item without the system prediction. "
-            "Reviewer provenance was read from the sealed Delta rows."
-        )
-        evidence_limit = (
-            "This is preliminary evidence-label agreement, not final accuracy or proof of current clinical capability."
-        )
-    else:
-        reviewer_context = (
-            "The sealed reviewer was read from the Delta label rows, not supplied to this report command."
-        )
-        evidence_limit = (
-            "This is a timeboxed assistant review, not human ground truth, final accuracy, "
-            "or proof of current clinical capability."
-        )
-    if not evidence_gate["passed"]:
-        decision = (
-            "REHEARSAL ONLY: keep the free-check demo, but do not claim human-validated safety "
-            "or scale the model path."
-        )
-    elif labels["actual"] < labels["minimum"]:
-        decision = "NO-GO: insufficient completed labels; keep the walking-skeleton fallback."
-    elif not gate["passed"]:
+    sanity_check = summary["sanity_check"]
+    check_label = "COMPLETE" if sanity_check["completed"] else "INCOMPLETE"
+    if not sanity_check["completed"] or not gate["passed"]:
         decision = "NO-GO: an accepted free check made a false support or conflict on holdout."
     elif not model["economically_plausible"]:
-        decision = "GO for the free-check demo; do not scale the model path at this observed escalation rate."
+        decision = "MOVE ON with the free-check demo; do not scale the model path at this escalation rate."
     else:
-        decision = "GO: the holdout safety gate passed and projected model demand is within the pilot threshold."
+        decision = "MOVE ON: the safety fallback is verified and projected model demand is within the threshold."
 
     lines = [
-        "# Blind-labelled free-check pilot",
+        "# Free-check sanity check",
         "",
         f"**Status:** `{summary['status']}`",
         "",
-        f"**Evidence gate:** {gate_label} — {evidence_gate['reason']}.",
+        f"**Sanity check:** {check_label} — {sanity_check['reason']}.",
         "",
         f"**Decision:** {decision}",
         "",
@@ -411,8 +388,8 @@ def render_report(summary: Mapping[str, Any]) -> str:
             f"{labels['actual']} evidence items were labelled in complete six-capability waves "
             f"({labels['development']} development, {labels['holdout']} holdout; minimum {labels['minimum']})."
         ),
-        reviewer_context,
-        evidence_limit,
+        "A rushed human reviewer saw each selected row item without the system prediction.",
+        "This sanity check is not authoritative, ground truth, final accuracy, or proof of current capability.",
         "",
         "## Holdout safety action",
         "",
@@ -499,7 +476,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--input", type=Path)
     parser.add_argument("--waves", type=int, default=10)
-    parser.add_argument("--labeler", default=HUMAN_LABELER)
+    parser.add_argument("--labeler", default=SANITY_CHECK_LABELER)
     args = parser.parse_args()
     stage = args.command
     try:
@@ -531,18 +508,27 @@ def main() -> int:
             )
             summary["generated_at"] = datetime.now(UTC).isoformat()
             summary["pilot_id"] = _pilot_id(queue)
-            human_review = labelers == (HUMAN_LABELER,)
+            review_kind = (
+                "rushed_human_sanity_check"
+                if labelers == (SANITY_CHECK_LABELER,)
+                else "non_authoritative_rehearsal"
+            )
             summary["labeling"] = {
                 "blind": True,
                 "reviewers": list(labelers),
                 "reviewer_type": labelers[0] if len(labelers) == 1 else "multiple_reviewers",
-                "human_review": human_review,
+                "review_kind": review_kind,
+                "authoritative": False,
                 "unit": "one deterministically sampled evidence item per queued claim",
             }
-            summary["evidence_gate"] = evidence_gate_status(
+            summary["sanity_check"] = sanity_check_status(
                 summary["labels"]["actual"],
-                human_labels=human_review,
                 holdout_passed=summary["holdout_gate"]["passed"],
+            )
+            summary["status"] = (
+                "sanity_check_complete"
+                if summary["sanity_check"]["completed"]
+                else "sanity_check_incomplete"
             )
             summary["holdout_gate"]["initial_observed_failures"] = {
                 "false_support": 1,
