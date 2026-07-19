@@ -7,6 +7,16 @@ The deployed app is `trustdesk-spike` in the Free Edition workspace
 A cold start takes **2–3 minutes**. Warm the app at least 15 minutes before a
 live demo. Reviews live in Lakebase and always survive restarts.
 
+## Keep-alive during judging
+
+Free Edition stops every app 24 hours after it starts. A scheduled workspace
+job (`keep-trustdesk-app-alive`, job id `544062991972699`) restarts the app at
+**04:10 and 16:10 UTC daily**, so the 24-hour clock never expires. Each restart
+is a ~3 minute downtime window. The job runs the notebook
+`/Workspace/Shared/keep-trustdesk-alive`. To stop the automation after
+judging: Workflows → `keep-trustdesk-app-alive` → pause or delete the
+schedule.
+
 ## Restart from the browser
 
 1. Open the workspace: `https://dbc-0b2c41fb-f343.cloud.databricks.com`
