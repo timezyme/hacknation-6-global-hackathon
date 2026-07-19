@@ -1,18 +1,22 @@
-"""Read-only walking-skeleton app with persistent reviewer feedback."""
+"""Read-only Trust Desk app with persistent reviewer feedback.
+
+Request handlers never import or invoke the check pipeline or a model client;
+they read precomputed results and write review snapshots, nothing else.
+"""
 
 from __future__ import annotations
 
 import json
 import logging
 import os
-import re
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal, Protocol
-from uuid import UUID, uuid4
+from typing import Any, Literal
+from urllib.parse import urlsplit
+from uuid import uuid4
 
 import psycopg
 from databricks.sdk import WorkspaceClient
@@ -22,9 +26,34 @@ from fastapi.responses import FileResponse
 from psycopg import Connection
 from pydantic import BaseModel, Field
 
-LOGGER = logging.getLogger("trustdesk.walking_skeleton")
-CAPABILITIES = ("ICU", "maternity", "emergency", "oncology", "trauma", "NICU")
-TABLE_NAME = re.compile(r"^[A-Za-z0-9_]+\.[A-Za-z0-9_]+\.[A-Za-z0-9_]+$")
+from app.repositories import (
+    CAPABILITIES,
+    RANKED_TIERS,
+    RANKING_RULE,
+    TABLE_NAME,
+    ActiveRunResultStore,
+    FacilityData,
+    InMemoryResultStore,
+    InMemoryReviewStore,
+    ResultStore,
+    ReviewRecord,
+    ReviewStore,
+)
+
+__all__ = [
+    "ActiveRunResultStore",
+    "DatabricksResultStore",
+    "FacilityData",
+    "InMemoryResultStore",
+    "InMemoryReviewStore",
+    "LakebaseReviewStore",
+    "ReviewRecord",
+    "app",
+    "create_app",
+]
+
+LOGGER = logging.getLogger("trustdesk.app")
+ARTIFACTS_DIR = Path(__file__).parents[1] / "artifacts"
 CREATE_APP_SCHEMA = "CREATE SCHEMA IF NOT EXISTS trustdesk"
 CREATE_REVIEW_TABLE = """
 CREATE TABLE IF NOT EXISTS trustdesk.review_decisions (
@@ -39,15 +68,18 @@ CREATE TABLE IF NOT EXISTS trustdesk.review_decisions (
     created_at TIMESTAMPTZ NOT NULL
 )
 """
+ADD_DECIDING_CHECKS_COLUMN = (
+    "ALTER TABLE trustdesk.review_decisions ADD COLUMN IF NOT EXISTS system_deciding_checks TEXT"
+)
 INSERT_REVIEW = """
 INSERT INTO trustdesk.review_decisions (
     review_id, record_key, capability, decision, note,
-    run_id, system_verdict, reviewer, created_at
-) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    run_id, system_verdict, system_deciding_checks, reviewer, created_at
+) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 """
 SELECT_REVIEW = """
 SELECT review_id, record_key, capability, decision, note,
-       run_id, system_verdict, reviewer, created_at
+       run_id, system_verdict, system_deciding_checks, reviewer, created_at
 FROM trustdesk.review_decisions
 WHERE record_key = %s AND capability = %s AND reviewer = %s
 ORDER BY created_at DESC
@@ -64,56 +96,6 @@ class DatabaseSettings:
     port: int
     sslmode: str
     application_name: str
-
-
-@dataclass(frozen=True)
-class FacilityData:
-    """One active Delta result in the shape consumed by the API and UI."""
-
-    run_id: str
-    record_key: str
-    facility_id: str
-    facility_name: str
-    region: str
-    capability: str
-    rank: int
-    support_tier: str
-    support_field_count: int
-    support_item_count: int
-    unresolved_item_count: int
-    marks: dict[str, str]
-    receipt: tuple[dict[str, Any], ...]
-    source_urls: tuple[str, ...]
-    unknown_summary: str
-
-
-@dataclass(frozen=True)
-class ReviewRecord:
-    """Immutable snapshot of one reviewer response to one displayed result."""
-
-    review_id: UUID
-    record_key: str
-    capability: str
-    decision: str
-    note: str | None
-    run_id: str
-    system_verdict: str
-    reviewer: str
-    created_at: datetime
-
-
-class ResultStore(Protocol):
-    def options(self) -> dict[str, object]: ...
-
-    def search(self, capability: str, region: str) -> tuple[FacilityData, ...]: ...
-
-    def receipt(self, record_key: str, capability: str) -> FacilityData | None: ...
-
-
-class ReviewStore(Protocol):
-    def save(self, review: ReviewRecord) -> ReviewRecord: ...
-
-    def latest(self, record_key: str, capability: str, reviewer: str) -> ReviewRecord | None: ...
 
 
 class HealthResponse(BaseModel):
@@ -142,7 +124,7 @@ def database_settings() -> DatabaseSettings:
         user=required_environment("PGUSER"),
         port=int(required_environment("PGPORT")),
         sslmode=required_environment("PGSSLMODE"),
-        application_name=os.environ.get("PGAPPNAME", "trustdesk-walking-skeleton"),
+        application_name=os.environ.get("PGAPPNAME", "trustdesk-app"),
     )
 
 
@@ -337,39 +319,57 @@ def _review_from_row(row: tuple[Any, ...]) -> ReviewRecord:
         note=row[4],
         run_id=row[5],
         system_verdict=row[6],
-        reviewer=row[7],
-        created_at=row[8],
+        system_deciding_checks=row[7] or "",
+        reviewer=row[8],
+        created_at=row[9],
     )
 
 
 class LakebaseReviewStore:
     """Persist immutable review snapshots in the already-bound Lakebase database."""
 
-    def save(self, review: ReviewRecord) -> ReviewRecord:
-        with database_connection() as connection, connection.cursor() as cursor:
+    def __init__(self) -> None:
+        self._schema_ready = False
+
+    def _ensure_schema(self, connection: Connection[Any]) -> None:
+        """Both read and write paths migrate: a deploy must not hide existing reviews."""
+        if self._schema_ready:
+            return
+        with connection.cursor() as cursor:
             cursor.execute(CREATE_APP_SCHEMA)
             cursor.execute(CREATE_REVIEW_TABLE)
-            cursor.execute(
-                INSERT_REVIEW,
-                (
-                    review.review_id,
-                    review.record_key,
-                    review.capability,
-                    review.decision,
-                    review.note,
-                    review.run_id,
-                    review.system_verdict,
-                    review.reviewer,
-                    review.created_at,
-                ),
-            )
+            cursor.execute(ADD_DECIDING_CHECKS_COLUMN)
+        connection.commit()
+        self._schema_ready = True
+
+    def save(self, review: ReviewRecord) -> ReviewRecord:
+        with database_connection() as connection:
+            self._ensure_schema(connection)
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    INSERT_REVIEW,
+                    (
+                        review.review_id,
+                        review.record_key,
+                        review.capability,
+                        review.decision,
+                        review.note,
+                        review.run_id,
+                        review.system_verdict,
+                        review.system_deciding_checks,
+                        review.reviewer,
+                        review.created_at,
+                    ),
+                )
             connection.commit()
         return review
 
     def latest(self, record_key: str, capability: str, reviewer: str) -> ReviewRecord | None:
-        with database_connection() as connection, connection.cursor() as cursor:
-            cursor.execute(SELECT_REVIEW, (record_key, capability, reviewer))
-            row = cursor.fetchone()
+        with database_connection() as connection:
+            self._ensure_schema(connection)
+            with connection.cursor() as cursor:
+                cursor.execute(SELECT_REVIEW, (record_key, capability, reviewer))
+                row = cursor.fetchone()
         return _review_from_row(row) if row is not None else None
 
 
@@ -408,8 +408,20 @@ def _review_payload(review: ReviewRecord) -> dict[str, object]:
         "note": review.note,
         "run_id": review.run_id,
         "system_verdict": review.system_verdict,
+        "system_deciding_checks": review.system_deciding_checks,
         "created_at": review.created_at.isoformat(),
     }
+
+
+def _deciding_checks(facility: FacilityData) -> str:
+    checks = sorted(
+        {
+            check
+            for item in facility.receipt
+            if item.get("outcome") == "decision" and isinstance(check := item.get("deciding_check"), str)
+        }
+    )
+    return ", ".join(checks) if checks else "none"
 
 
 def _reviewer(header: str | None) -> str:
@@ -418,12 +430,38 @@ def _reviewer(header: str | None) -> str:
     return header.strip()[:320]
 
 
+def _require_same_origin(origin: str | None, forwarded_host: str | None, host: str | None) -> None:
+    """Reject review writes whose Origin does not match the trusted serving host."""
+    if origin is None or not origin.strip():
+        return
+    origin_host = urlsplit(origin.strip()).netloc.lower()
+    trusted = (forwarded_host or host or "").strip().lower()
+    if not origin_host or not trusted or origin_host != trusted:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Review request origin not allowed.")
+
+
+def _artifact_json(name: str) -> dict[str, Any] | None:
+    path = ARTIFACTS_DIR / name
+    try:
+        payload = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
 def unavailable(operation: str, error: Exception) -> HTTPException:
-    LOGGER.error("Walking skeleton %s failed (%s)", operation, type(error).__name__)
+    LOGGER.error("Trust Desk %s failed (%s)", operation, type(error).__name__)
     return HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail="Walking skeleton data is temporarily unavailable.",
+        detail="Trust Desk data is temporarily unavailable.",
     )
+
+
+def default_result_store() -> ResultStore:
+    """Choose the result source from the environment; legacy table remains the default."""
+    if os.environ.get("TRUSTDESK_RESULTS_SOURCE") == "batch":
+        return ActiveRunResultStore(required_environment("TRUSTDESK_SQL_WAREHOUSE_ID"))
+    return DatabricksResultStore()
 
 
 def create_app(result_store: ResultStore, review_store: ReviewStore) -> FastAPI:
@@ -456,7 +494,27 @@ def create_app(result_store: ResultStore, review_store: ReviewStore) -> FastAPI:
             facilities = result_store.search(capability, region)
         except Exception as error:
             raise unavailable("results", error) from None
-        return {"capability": capability, "region": region, "facilities": [_summary(item) for item in facilities]}
+        ranked = [item for item in facilities if item.support_tier in RANKED_TIERS]
+        unranked = [item for item in facilities if item.support_tier not in RANKED_TIERS]
+        return {
+            "capability": capability,
+            "region": region,
+            "ranking_rule": RANKING_RULE,
+            "facilities": [_summary(item) for item in ranked],
+            "unranked": [_summary(item) for item in unranked],
+        }
+
+    @application.get("/api/methods")
+    def methods() -> dict[str, object]:
+        return {
+            "ranking_rule": RANKING_RULE,
+            "pilot": _artifact_json("pilot-summary.json"),
+            "referee": _artifact_json("referee-summary.json"),
+            "note": (
+                "Pilot numbers are evidence-label agreement on a blind sample, per check, "
+                "with confidence intervals. Reviewer feedback is never counted as accuracy."
+            ),
+        }
 
     @application.get("/api/receipts/{record_key:path}")
     def receipt(
@@ -477,8 +535,12 @@ def create_app(result_store: ResultStore, review_store: ReviewStore) -> FastAPI:
     def save_review(
         request: ReviewRequest,
         x_forwarded_user: str | None = Header(default=None),
+        origin: str | None = Header(default=None),
+        x_forwarded_host: str | None = Header(default=None),
+        host: str | None = Header(default=None),
     ) -> dict[str, object]:
         reviewer = _reviewer(x_forwarded_user)
+        _require_same_origin(origin, x_forwarded_host, host)
         if request.capability not in CAPABILITIES:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unknown capability.")
         note = request.note.strip() if request.note else None
@@ -486,8 +548,11 @@ def create_app(result_store: ResultStore, review_store: ReviewStore) -> FastAPI:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Override note required.")
         try:
             facility = result_store.receipt(request.record_key, request.capability)
-            if facility is None:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found.")
+        except Exception as error:
+            raise unavailable("receipt read", error) from None
+        if facility is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found.")
+        try:
             review = review_store.save(
                 ReviewRecord(
                     review_id=uuid4(),
@@ -497,12 +562,11 @@ def create_app(result_store: ResultStore, review_store: ReviewStore) -> FastAPI:
                     note=note,
                     run_id=facility.run_id,
                     system_verdict=facility.support_tier,
+                    system_deciding_checks=_deciding_checks(facility),
                     reviewer=reviewer,
                     created_at=datetime.now(UTC),
                 )
             )
-        except HTTPException:
-            raise
         except Exception as error:
             raise unavailable("review write", error) from None
         return _review_payload(review)
@@ -525,4 +589,4 @@ def create_app(result_store: ResultStore, review_store: ReviewStore) -> FastAPI:
     return application
 
 
-app = create_app(DatabricksResultStore(), LakebaseReviewStore())
+app = create_app(default_result_store(), LakebaseReviewStore())

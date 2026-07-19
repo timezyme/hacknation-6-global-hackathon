@@ -645,14 +645,15 @@ Proceed to Phase 7 when the gate is green.
 
 ## Phase 7 — Harden the read API and persistent review workflow
 
-**Blocker carried from the Phase 6 review:** the new `trustdesk_receipts` items use `final_outcome`
-and keep per-item `check_version`/`rationale` only inside `attempts`, while `app/index.html`
-filters on `item.outcome` and renders those keys directly — pointing the app at the new tables
-without translating renders zero evidence items. The Phase 7 repository adapter must translate the
-new shape to the UI contract (or batch must emit the legacy keys). Also carried: the manifest
-hardcodes `model_mode="disabled"`/`model_version=None` — guard or derive it before any config ever
-enables a metered check; and the production `DatabricksSink` is untested against a live warehouse,
-so the first full live run is still an open Phase 6 gate item.
+**Status: implemented and reviewed; deployed verification pending.** The repository adapter in
+`app/repositories.py` translates the Phase 6 receipt shape to the UI contract (the carried
+blocker), filters quarantine receipts out of the evidence join, fails loudly on truncated result
+sets, and migrates the review schema on both read and write paths. The app defaults to the proven
+walking-skeleton table; set `TRUSTDESK_RESULTS_SOURCE=batch` (plus the warehouse id) to serve the
+active batch run — flip it during Phase 9 deployment. Still open from the Phase 6 review: the
+manifest hardcodes `model_mode="disabled"` (guard before any config enables a metered check), and
+the production `DatabricksSink` plus this phase's live restart/persistence check await the first
+full live run in Phase 9.
 
 ### Objective
 
