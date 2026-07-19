@@ -6,3 +6,5 @@ env:
     valueFrom: "warehouse"
   - name: "TRUSTDESK_RESULTS_TABLE"
     valueFrom: "results"
+  - name: "TRUSTDESK_RESULTS_SOURCE"
+    value: "batch"
