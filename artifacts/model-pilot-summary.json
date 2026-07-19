@@ -1,0 +1,84 @@
+{
+  "attempted_model": {
+    "endpoint": "databricks-meta-llama-3-1-8b-instruct",
+    "family": "Llama",
+    "parser_version": "structured-items-v1",
+    "prompt_version": "entailment-v1"
+  },
+  "development": {
+    "agreements": 0,
+    "capabilities": [
+      "ICU",
+      "maternity",
+      "emergency",
+      "oncology",
+      "trauma",
+      "NICU"
+    ],
+    "claims": 6,
+    "disagreements": 0,
+    "false_conflict": 0,
+    "false_support": 0,
+    "processing_failures": 6
+  },
+  "generated_at": "2026-07-19T02:54:32.643903+00:00",
+  "holdout": {
+    "attempted": false,
+    "reason": "model disabled before holdout because full-batch throughput and headroom did not qualify"
+  },
+    "mlflow": {
+        "experiment_path": "/Shared/trustdesk-model-pilot",
+        "live_raw_evidence_absence_verified": false,
+        "metadata_readback_verified": false,
+        "raw_evidence_logging_policy": "code path excludes raw inputs and outputs",
+        "span_payload_verified": false,
+        "trace_emission_attempted": true,
+        "verification_limit": "local OAuth refresh prevented span-payload readback"
+  },
+  "modularity": {
+    "default_enabled": false,
+    "enable_surface": "one checks.toml entry",
+    "runner_changed": false
+  },
+  "projection": {
+    "can_complete_twice_with_headroom": false,
+    "currency_cost": null,
+        "currency_cost_reason": "endpoint response did not expose a reliable currency price",
+        "free_check_model_call_rate": 1.0,
+        "observed_serving_attempts_per_claim": 2.0,
+        "projected_full_batch_claim_bundles": 10505,
+        "projected_full_batch_serving_calls": 21010,
+        "projected_serial_seconds_at_p95": 80103.335,
+    "qualification_window_seconds": 3600
+  },
+  "qualification": {
+    "disable_reason": "full_batch_not_economically_or_operationally_qualified",
+    "qualified": false,
+    "safety_assessed": false,
+    "safety_passed": false,
+    "structured_output_passed": false,
+    "throughput_and_headroom_passed": false
+  },
+  "qwen_fallback": {
+    "attempted": false,
+    "reason": "escalation economics fail independently of model choice; no comparative bakeoff"
+  },
+  "reference_labels": {
+    "authoritative": false,
+    "kind": "rushed_human_sanity_check",
+    "label_count": 60
+  },
+  "schema_version": 1,
+  "selected_mode": "free_check_only",
+  "serving": {
+    "attempts": 12,
+    "minimum_headroom_sample": 20,
+    "p95_latency_ms": 3812.629,
+    "quota_failures": 0,
+    "rate_limit_headroom_proven": false,
+    "serial_call_rate_at_p95_per_second": 0.262286,
+    "successful_calls": 12,
+    "timeout_failures": 0
+  },
+  "status": "disabled_after_capped_spike"
+}
