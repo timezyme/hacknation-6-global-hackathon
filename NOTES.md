@@ -68,7 +68,7 @@ on the same claim — "unverifiable, data missing" versus "contradicted or genui
 
 ### The mock
 
-Live at https://claude.ai/code/artifact/6c0e58d1-a3ac-45fe-b854-75f9d5481e9f
+A clickable concept mock preceded the app; the shipped UI in `app/index.html` grew from it.
 
 The core idea worth protecting: **a four-state evidence mark per field**, checked across
 Description, Capability, Equipment, Procedure.
@@ -144,8 +144,8 @@ Status as of the end of the day. Struck items are resolved further down this fil
 - `.env` holds `DATABRICKS_ACCESS_TOKEN`, so an account exists.
 - `.mcp/DatabricksMCP/` is a local checkout of a Databricks MCP server, pinned at commit
   `191a5bcd`. `scripts/run-databricks-mcp` launches it with `DATABRICKS_MCP_ACCESS_MODE=read-only`.
-- That server is registered in `.codex/config.toml` — **for Codex, not for Claude Code**. No
-  Databricks tools are available in a Claude Code session until it is registered there too.
+- That server is registered in one local tool config only; no Databricks tools are available in
+  a session elsewhere until it is registered there too.
 - `.gitignore` correctly excludes `.env` and the vendored MCP checkout, but the project root is not
   a git repository yet.
 
@@ -272,12 +272,12 @@ Anti-patterns confirmed and to be avoided: their verifier drops rejected claims 
 a `null` confidence renders identically to a verified match; missing evidence falls back to an
 empty string that reads as normal.
 
-### The Databricks MCP is still not usable from Claude Code
+### The Databricks MCP is still not wired into this environment
 
-It is registered in `.codex/config.toml` only, so a Claude Code session gets no Databricks tools.
+It is registered in one local tool config only, so this environment gets no Databricks tools.
 I worked around it by calling the REST API directly with the `.env` credentials, which is how
 everything above was verified. Per `docs/learnings.md`: installed and configured is not the same as
-connected and verified. To use it here it needs registering in Claude Code's MCP config.
+connected and verified. To use it here it needs registering in this environment's MCP config.
 
 (Note on naming: this is the **Databricks** MCP. Dataplex is a Google Cloud product.)
 
@@ -362,7 +362,7 @@ Repo initialized, `.env` confirmed untracked. Commits go on branches; a hook blo
   state. Needs reconciling.
 - `docs/architecture.md` — the design that makes the thesis real: one `Check` protocol with
   abstention, enrichers separate from deciders, capabilities and pipelines as data rather than code.
-  **This is the doc a new agent should read first.**
+  **This is the doc a new contributor should read first.**
 
 **Known gap between the design and the code.** `docs/architecture.md` describes checks as
 independent pluggable units. `ladder.py` currently hardcodes them as if/else flow inside

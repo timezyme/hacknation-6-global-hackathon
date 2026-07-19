@@ -179,8 +179,8 @@ The brief's open research questions, answered in the shipped app:
 
 Links:
 - Repo: https://github.com/timezyme/hacknation-6-global-hackathon
-- Architecture walkthrough: https://claude.ai/code/artifact/f024a24c-c01c-4567-8c26-ad8f7f1e1159
-- UI concept: https://claude.ai/code/artifact/6c0e58d1-a3ac-45fe-b854-75f9d5481e9f
+- Live app: https://trustdesk-spike-7474651147859378.aws.databricksapps.com (Databricks login required)
+- Architecture: docs/architecture.md in the repo
 
 ---
 
