@@ -11,11 +11,12 @@ live demo. Reviews live in Lakebase and always survive restarts.
 
 Free Edition stops every app 24 hours after it starts. A scheduled workspace
 job (`keep-trustdesk-app-alive`, job id `544062991972699`) restarts the app at
-**04:10 and 16:10 UTC daily**, so the 24-hour clock never expires. Each restart
-is a ~3 minute downtime window. The job runs the notebook
-`/Workspace/Shared/keep-trustdesk-alive`. To stop the automation after
-judging: Workflows → `keep-trustdesk-app-alive` → pause or delete the
-schedule.
+**04:10 and 16:10 UTC, July 19-24 2026 only**, so the 24-hour clock never
+expires during judging. Each restart is a ~3 minute downtime window. The job
+runs the notebook `/Workspace/Shared/keep-trustdesk-alive`, which also refuses
+to act after 2026-07-24. The schedule self-expires: the last restart is
+16:10 UTC on July 24, and the app auto-stops for good about 24 hours later.
+The job can then be deleted from Workflows at leisure.
 
 ## Restart from the browser
 
