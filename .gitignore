@@ -15,5 +15,5 @@ __pycache__/
 .coverage
 HANDOFF.md
 
-# Local video takes; the committed submission videos in artifacts/ stay tracked.
+# Video files stay local; the submission videos are delivered outside the repo.
 *.mp4

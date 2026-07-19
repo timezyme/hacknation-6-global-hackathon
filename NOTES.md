@@ -396,3 +396,10 @@ The evidence model survives, but the dataset changes its implementation:
 Next experiment: label 300 claims, 50 per target capability, as support, refutation, irrelevant, or
 uncertain. Use that set to tune the vocabularies, measure cheap-rung accuracy and escalation rate,
 and seed calibration.
+
+## Where the story continues
+
+This log covers the exploration phase, in order. Execution then moved to
+`docs/winning-demo-plan.md`, whose per-phase status lines are the rest of the story. The labelled
+pilot's results are in `docs/pilot-results.md`, the shipped design in `docs/architecture.md`, and
+the demo was frozen on 2026-07-19 — restart and verification steps in `docs/demo-runbook.md`.

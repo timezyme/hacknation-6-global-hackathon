@@ -4,9 +4,9 @@
 
 Built for Hack-Nation Challenge 04, *Data Legend* — Databricks x Virtue Foundation.
 
-> [Architecture, explained visually](https://claude.ai/code/artifact/f024a24c-c01c-4567-8c26-ad8f7f1e1159) ·
-> [Live UI concept](https://claude.ai/code/artifact/6c0e58d1-a3ac-45fe-b854-75f9d5481e9f) ·
-> [Full architecture doc](docs/architecture.md)
+> [Architecture](docs/architecture.md) ·
+> [Demo runbook](docs/demo-runbook.md) ·
+> [Submission notes](docs/submission.md)
 
 ---
 
@@ -52,9 +52,10 @@ file, not by reading our code.
 
 Each record has four fields we can read: its description, its capability list, its equipment
 list, and its procedure list. Claims descend a pipeline of configured checks, cheapest first —
-presence, vocabulary, then a batched open-weight model for entailment. A check that cannot
-safely decide **abstains** and passes the item along; a check that breaks records a processing
-failure, never a silent "no evidence."
+presence, vocabulary, and an optional batched open-weight model for entailment (built, gated,
+and shipped **disabled** in config: the labelled pilot showed the free checks carry this
+corpus). A check that cannot safely decide **abstains** and passes the item along; a check that
+breaks records a processing failure, never a silent "no evidence."
 
 Each field ends up with one of five grades:
 
@@ -76,10 +77,19 @@ Never a model. The same four grades always produce the same answer, so a label c
 from the evidence beneath it. The rule is shown in the UI, because the rule *is* the trust
 story.
 
+Two more things ride along on every ranked receipt:
+
+1. **A referee second opinion.** Every decision is re-examined by a method independent of the
+   one that made it — vocabulary decisions are corroborated only by wording the deciding
+   lexicon could not itself have matched. The referee never changes a verdict; agreement,
+   disagreement, and "could not double-check" are all displayed honestly.
+2. **Similar-facility context** from a Mosaic AI Vector Search index (a capability-relevant
+   subset of the corpus) — comparison context only, clearly labelled: similarity is not
+   verification.
+
 ## Architecture
 
-The full design, its contract, and every tradeoff live in [docs/architecture.md](docs/architecture.md),
-with a [visual walkthrough](https://claude.ai/code/artifact/f024a24c-c01c-4567-8c26-ad8f7f1e1159).
+The full design, its contract, and every tradeoff live in [docs/architecture.md](docs/architecture.md).
 The shipped pipeline is:
 
 **ingest and quarantine -> configured checks -> deterministic reduction and verdict -> atomic
@@ -92,7 +102,7 @@ flowchart LR
       direction TB
       UC[("Unity Catalog<br/>10,088 facility rows")] --> RUN["Check pipeline<br/>asserted claims only"]
       RUN --> OUT[("Delta tables<br/>facility index · verdicts · receipts · manifest")]
-      LLM["Llama endpoint<br/>(Qwen by config)"] -.-> RUN
+      LLM["Llama endpoint<br/>(optional — ships disabled)"] -.-> RUN
       MLF["MLflow traces"] -.-> RUN
     end
 
@@ -111,12 +121,15 @@ Nothing is adjudicated while someone waits. Free Edition gives one 2X-Small ware
 claim is settled in batch, published atomically (a partial run can never become active), and the
 app only reads verdicts and writes reviews.
 
-## The UI
+## The app
 
-The [concept mock](https://claude.ai/code/artifact/6c0e58d1-a3ac-45fe-b854-75f9d5481e9f) is the
-planner's whole journey: pick a capability and region, see facilities ranked by how well their
-own record backs the claim, expand any row to read the receipt — the per-field grades, the exact
-cited sentences, and which check made each call — then confirm or override with a note.
+Deployed live on Databricks Free Edition (workspace login required; see
+[docs/demo-runbook.md](docs/demo-runbook.md) for restart and verification). The planner's whole
+journey: pick a capability and region, see facilities ranked by how well their own record backs
+the claim, expand any row to read the receipt — the per-field grades, the exact cited
+sentences, which check made each call, the attempt trail, the referee's second opinion, and
+similar facilities for context — then confirm or override with a note. Reviews persist in
+Lakebase across restarts.
 
 Two ideas in it are load-bearing:
 
@@ -143,12 +156,17 @@ Two ideas in it are load-bearing:
 ## Repository layout
 
 ```
-src/trustdesk/   marks.py (grades and the verdict rule) · lexicon.py (vocabularies) · ladder.py (checks)
-tests/           the behavioural pin for the refactor to configured checks
-app/             the concept mock and the FastAPI shell that will serve it
-docs/            architecture (start here) · requirements · dataset-audit · demo plan · learnings
-scripts/         Databricks MCP launcher · platform verification spike
-NOTES.md         running decisions and findings, in the order they happened
+src/trustdesk/   the check pipeline: marks.py (grades and the verdict rule) · lexicon.py ·
+                 checks + config loading · batch.py (precompute + atomic publication) ·
+                 referee.py (second opinions) · similar.py (vector-search context) ·
+                 sink.py (Databricks writes)
+app/             the deployed FastAPI app: main.py · repositories.py (batch + Lakebase
+                 stores) · index.html
+config/          checks.toml — which checks run, in what order, and the referee settings
+scripts/         batch runner · vector index builder · deployed smoke test · pilot tooling
+tests/           163 tests: unit, production-adapter, and end-to-end
+docs/            architecture (start here) · demo runbook · submission · pilot results
+NOTES.md         exploration-phase decisions and findings, in the order they happened
 ```
 
 ## Running the tests
@@ -157,8 +175,9 @@ NOTES.md         running decisions and findings, in the order they happened
 uv run pytest -q
 ```
 
-29 tests pass. They pin the current behaviour through the planned refactor from hardcoded checks
-to configured units.
+163 tests pass (81% line coverage), alongside `ruff` and `mypy` gates and a Playwright
+end-to-end suite. A deployed smoke test (`scripts/smoke_demo.py`) verifies the live app's whole
+workflow, including a review write that survives restarts.
 
 ## Who built this
 

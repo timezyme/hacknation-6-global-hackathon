@@ -165,6 +165,14 @@ A-Z, then record key. `conflicting evidence`, `not enough evidence`, `could not 
 assigned a misleading low rank. The UI labels the ranking as **strength of record support, not
 facility quality**.
 
+### Similar-facility context — comparison, never verification
+
+At batch time, each ranked verdict's receipt carries up to three most-similar facility records
+from a Mosaic AI Vector Search index built over a capability-relevant subset of the corpus
+(managed embeddings; the subset scope is recorded in `docs/winning-demo-plan.md`). The UI frames
+it explicitly: comparison context only — similarity is not verification. A retrieval failure
+attaches nothing rather than failing the batch or the receipt.
+
 ### Reviewer feedback — confirm or override, never ground truth
 
 A review stores: decision (`confirmed`/`overridden`), optional note, a **snapshot** of the reviewed
@@ -222,7 +230,7 @@ flowchart LR
       direction TB
       UC[("Unity Catalog<br/>10,088 facility rows")] --> RUN["Check pipeline<br/>asserted claims only"]
       RUN --> OUT[("Delta tables<br/>facility index · verdicts · receipts · manifest")]
-      LLM["Llama endpoint<br/>(Qwen by config)"] -.-> RUN
+      LLM["Llama endpoint<br/>(optional — ships disabled)"] -.-> RUN
       MLF["MLflow traces"] -.-> RUN
     end
 
@@ -321,11 +329,11 @@ its "verdict" would be noise.
 
 ## Outside the critical path
 
-Named here so their absence reads as a decision, not an oversight: vector retrieval, a second-model
-referee, MinerU, LlamaIndex, external source-page verification, numeric facility confidence scores,
-live adjudication from the app, and vertical attempt stacks inside a check (retry/failover chains —
-designed as a seam, not built). None of these may enter the demo before the submission candidate is
-frozen and green.
+Two items originally listed here later shipped in bounded form: vector retrieval (as batch-time
+similar-facility context, above) and the referee (in rules mode, with model bundles capped at zero
+by config). Still absent, by decision: MinerU, LlamaIndex, external source-page verification,
+numeric facility confidence scores, live adjudication from the app, and vertical attempt stacks
+inside a check (retry/failover chains — designed as a seam, not built).
 
 ## Constraints that forced these choices
 
@@ -343,17 +351,19 @@ frozen and green.
 
 See `docs/dataset-audit.md` for the measurements behind these.
 
-## Open question this design must survive
+## Open question this design had to survive — answered
 
-We do not know what fraction of claims the free checks settle. If nearly everything escalates, the
-model-call economics decide the demo mode. The timeboxed labelled pilot measures it — and because
-every verdict records which check decided, the answer is observable per check rather than only in
-aggregate. The fallback modes above are the answer to every outcome of that measurement.
+We did not know what fraction of claims the free checks settle. The timeboxed labelled pilot
+measured it (`docs/pilot-results.md`): the free checks carry this corpus, so the model check ships
+disabled in config — fallback mode 2 above, chosen from measurement rather than necessity. Because
+every verdict records which check decided, that answer is observable per check, not only in
+aggregate.
 
 ## Current state versus this design
 
-`src/trustdesk/ladder.py` has the right behaviour in the wrong shape — the checks are hardcoded as
-if/else inside one function rather than separate configured units. The 29 existing tests pin the
-behaviour and must keep passing through the refactor, except where this contract deliberately turns
-a vocabulary non-match from a decision into an abstention. Implementation detail lives in the code,
-not here.
+Shipped as designed. The checks are separate configured units driven by `config/checks.toml`; the
+referee and similar-facility context ride on ranked receipts; the full corpus is published
+atomically as a live batch run; the app is deployed on Free Edition and reads only the active run.
+163 tests pin the behaviour. The demo was frozen on 2026-07-19 (`docs/winning-demo-plan.md`);
+restart and verification steps live in `docs/demo-runbook.md`. Implementation detail lives in the
+code, not here.
