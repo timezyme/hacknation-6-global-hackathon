@@ -119,6 +119,14 @@ The needs-proof items become explicit gates below. They must not become implemen
 - Databricks starts the deployed process from the command in `app.yaml`. See
   [deploy a Databricks App](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/deploy).
 
+## Amendments from the rubric re-review
+
+Lines below marked *(amendment — not implemented)* were added after reviewing the judged rubric
+against the built system. **None of them are built yet.** They exist so this work lands inside the
+plan's gates instead of beside them. Already built and committed, but not yet visible in the app:
+the vector index and its adapter (`src/trustdesk/similar.py`, `scripts/build_similar_index.py`);
+their receipt wiring is an amendment like the rest.
+
 ## Schedule guardrails and fallback modes
 
 Timeboxes are ceilings. When a timebox expires, preserve the last green deployment and take the
@@ -134,11 +142,12 @@ listed fallback instead of expanding scope.
 | Walking skeleton | 120 minutes | Keep the smallest live slice that completes the required workflow. |
 | Human-labelled pilot | 90 minutes | Publish the completed balanced sample and its actual denominator; label the report `in progress` if fewer than 60 claims are complete. |
 | Model check | 60 minutes | Disable it and show unresolved cases; a free-check-only demo remains honest. |
+| Referee pass *(amendment — not implemented)* | 60 minutes | Disable the referee in config; decisions display "not double-checked". |
 | Full batch | 90 minutes | Keep the walking-skeleton Delta run active. |
 | API and UI hardening | 120 minutes total | Revert the unfinished enhancement and keep the last green deployed workflow. |
 | Final verification | 60 minutes | Freeze the last version that passed tests, restart smoke, and one-minute rehearsal. |
 
-The timeboxes sum to 825 minutes, about 14 hours, before checkpoint waits and context switches.
+The timeboxes sum to 885 minutes, about 15 hours, before checkpoint waits and context switches.
 Before starting Phase 1, compare that total against the actual time remaining. If it does not fit,
 apply the cuts now rather than at expiry: run Phase 4 at the 60-claim floor, and give the model
 check one attempt before taking its disable fallback instead of spending the timebox on its full
@@ -532,6 +541,47 @@ The config contains one qualified remote check or explicitly disables it. The ru
 unchanged, the labelled artifact measures behavior, and MLflow proves traceability and runtime. At
 this go/no-go checkpoint, approve full, capped-model, or free-check-only mode before Phase 6.
 
+## Phase 5C — Referee pass over free-check decisions *(amendment — not implemented)*
+
+### Objective
+
+Make the app double-check its own work: every decision produced by a free check is independently
+re-examined, and disagreement is shown, never hidden. This is the brief's named validator stretch
+goal, inside the shipped app.
+
+### Units of work
+
+1. Add one referee module that re-evaluates each decided evidence coordinate with a method other
+   than the one that decided it: the capped Llama bundle when enabled, otherwise a rule-based
+   internal-consistency validator.
+2. Record agree, disagree, or could-not-referee per decision, with rationale, as receipt data. The
+   referee never changes the verdict; disagreement displays as "checks disagree on this decision."
+3. Cap referee model calls in config. The decided subset is far smaller than the full claim
+   population, so the cap must fit inside the rate-limit headroom measured in Phase 5B.
+4. Extend the receipt contract in `docs/architecture.md` with the referee fields.
+5. Publish referee agreement counts per check for the Phase 8 method panel.
+
+### Files, maximum five
+
+- `src/trustdesk/referee.py` — new
+- `tests/test_referee.py` — new
+- `config/checks.toml`
+- `docs/architecture.md`
+- `artifacts/referee-summary.json` — generated aggregate proof
+
+### Verification gate
+
+- Tests cover agreement, disagreement, referee processing failure, the config cap, and the
+  disabled fallback.
+- A diff shows no change to `src/trustdesk/ladder.py`.
+- Referee outcomes appear in receipt data without altering any verdict.
+- With the referee disabled in config, pipeline output is identical to the Phase 5B baseline.
+- `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q` pass.
+
+### Verifiable outcome
+
+Every displayed decision carries a second opinion or an honest "not double-checked" label.
+
 ## Phase 6 — Precompute complete, reproducible result sets
 
 ### Objective
@@ -548,6 +598,9 @@ Produce the exact data the app will read and prevent partial batches from reachi
 5. Record expected count, actual count, check configuration hash, model and prompt version, input table
    version, timestamps, and completion status in the manifest.
 6. Publish a run to the app only after counts and checks pass. Preserve the previous successful run.
+7. *(amendment — not implemented)* Fetch similar-facility context from the vector index at publish
+   time, through `src/trustdesk/similar.py`, and store it with each receipt. Batch-time only; a
+   fetch failure degrades to "context unavailable", never blocks publication.
 
 ### Files, maximum five
 
@@ -567,6 +620,9 @@ Produce the exact data the app will read and prevent partial batches from reachi
   queryable.
 - A bounded SQL smoke query confirms all six capabilities and all verdict states expected from the
   pilot without printing raw evidence.
+- *(amendment — not implemented)* The demo script's chosen examples span the verdict states
+  actually present in the full run, including at least one non-ranked state (not enough evidence,
+  could not check, or does not claim). A single-verdict demo slice fails this gate.
 - `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q` pass.
 
 ### Verifiable outcome
@@ -638,6 +694,10 @@ Keep the approved visual design while deepening evidence and evaluation displays
 6. Render planner-entered notes as text, enforce a same-origin content security policy, and send only
    same-origin review requests.
 7. Add an end-to-end test for the exact one-minute workflow.
+8. *(amendment — not implemented)* Show, per decision: the attempt trail (which checks abstained
+   before one decided), the referee outcome or "not double-checked", and the similar-facility
+   comparison context with its honest framing. Show the pilot's confidence intervals on the
+   per-check method panel.
 
 ### Files, maximum five
 
@@ -679,12 +739,17 @@ Prove the same workflow works on Databricks Free Edition and preserve evidence t
 5. Rehearse the one-minute script three times against the deployed app.
 6. After the final green rehearsal, obtain freeze approval, then freeze code and data. Keep the
    previous successful batch available.
+7. *(amendment — not implemented)* Update `docs/submission.md` and the demo script to call out the
+   brief's research questions this system answers: confidence intervals around check performance,
+   corroborated claims versus bare listings via the four field grades, and the data-desert versus
+   medical-desert distinction. The brief awards a real-impact bonus only if this is said out loud.
 
 ### Files, maximum five
 
 - `app.yaml`
 - `scripts/smoke_demo.py` — new
 - `docs/demo-runbook.md` — new
+- `docs/submission.md`
 - `artifacts/demo-proof.md` — generated, sanitized evidence only
 
 ### Verification gate
@@ -725,6 +790,14 @@ demonstrates the required workflow from a cold start.
 - [ ] Overrides survive an app restart.
 - [ ] Ruff, mypy, tests, coverage, local end-to-end, deployed smoke, and restart checks pass.
 - [ ] The one-minute demo completes three consecutive times.
+- [ ] *(amendment — not implemented)* Every free-check decision shows a referee outcome or an
+  honest "not double-checked" label.
+- [ ] *(amendment — not implemented)* Receipts show the attempt trail and similar-facility context
+  framed as comparison, never verification.
+- [ ] *(amendment — not implemented)* The demo examples include at least one non-ranked honesty
+  state.
+- [ ] *(amendment — not implemented)* The submission and demo name the answered research questions
+  for the real-impact bonus.
 
 ## Execution rule
 
