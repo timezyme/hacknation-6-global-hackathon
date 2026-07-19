@@ -1,0 +1,37 @@
+{
+  "completed_at": "2026-07-19T01:28:16.184744+00:00",
+  "deployed_path": {
+    "capability_to_region": true,
+    "deciding_check": true,
+    "deterministic_ranking": true,
+    "exact_item_receipt": true,
+    "health_200": true,
+    "override_saved": true,
+    "row_source_set": true,
+    "unknowns_visible": true
+  },
+  "failure": null,
+  "resource_binding": {
+    "postgres": "CAN_CONNECT_AND_CREATE",
+    "results_table": "SELECT",
+    "sql_warehouse": "CAN_USE"
+  },
+  "restart": {
+    "completed": true,
+    "duration_seconds": 151.327,
+    "health_200": true,
+    "override_persisted": true
+  },
+  "schema_version": 1,
+  "slice": {
+    "capability_count": 6,
+    "model_requests": 0,
+    "region_count": 17,
+    "row_count": 30,
+    "run_id": "walk-20260719T011630Z",
+    "run_status": "complete",
+    "selection_hash": "2f2aa32cd6e8fd46d25c7482e635508b4667a12f05c3cf1da747ea2f3c611bb2"
+  },
+  "started_at": "2026-07-19T01:25:36.315723+00:00",
+  "status": "pass"
+}

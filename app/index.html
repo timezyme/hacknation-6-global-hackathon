@@ -1,0 +1,787 @@
+<title>Facility Trust Desk</title>
+
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --paper:      #E9EBEE;
+    --card:       #FAFAFB;
+    --card-sunk:  #F1F3F5;
+    --line:       #D2D6DD;
+    --line-soft:  #E1E4E9;
+    --ink:        #15181F;
+    --ink-2:      #414958;
+    --ink-3:      #5F6673;
+
+    --indigo:     #2C3A73;
+    --indigo-lit: #E7E9F4;
+
+    --ok:         #2F6B45;
+    --ok-bg:      #E3EEE7;
+    --thin:       #8A5217;
+    --thin-bg:    #F3E9DC;
+    --clash:      #8E2F2A;
+    --clash-bg:   #F3E2E0;
+    --void:       #565C68;
+    --void-bg:    #E6E8EB;
+
+    --on-indigo:  #FAFAFB;
+
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    --r: 3px;
+    --w-marks: 288px;
+    --w-verdict: 172px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:      #0E1116;
+      --card:       #171B22;
+      --card-sunk:  #12161C;
+      --line:       #2A3038;
+      --line-soft:  #21262D;
+      --ink:        #E7EAEF;
+      --ink-2:      #AEB6C3;
+      --ink-3:      #838B99;
+
+      --indigo:     #A3B1E4;
+      --indigo-lit: #1D2540;
+
+      --ok:         #6FBE8B;
+      --ok-bg:      #16281D;
+      --thin:       #D9A05A;
+      --thin-bg:    #2B2013;
+      --clash:      #E08A82;
+      --clash-bg:   #2E1917;
+      --void:       #98A0AD;
+      --void-bg:    #1B1F26;
+
+      --on-indigo:  #0E1116;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:#0E1116; --card:#171B22; --card-sunk:#12161C; --line:#2A3038; --line-soft:#21262D;
+    --ink:#E7EAEF; --ink-2:#AEB6C3; --ink-3:#838B99;
+    --indigo:#A3B1E4; --indigo-lit:#1D2540;
+    --ok:#6FBE8B; --ok-bg:#16281D; --thin:#D9A05A; --thin-bg:#2B2013;
+    --clash:#E08A82; --clash-bg:#2E1917; --void:#98A0AD; --void-bg:#1B1F26;
+    --on-indigo:#0E1116;
+  }
+  :root[data-theme="light"] {
+    --paper:#E9EBEE; --card:#FAFAFB; --card-sunk:#F1F3F5; --line:#D2D6DD; --line-soft:#E1E4E9;
+    --ink:#15181F; --ink-2:#414958; --ink-3:#5F6673;
+    --indigo:#2C3A73; --indigo-lit:#E7E9F4;
+    --ok:#2F6B45; --ok-bg:#E3EEE7; --thin:#8A5217; --thin-bg:#F3E9DC;
+    --clash:#8E2F2A; --clash-bg:#F3E2E0; --void:#565C68; --void-bg:#E6E8EB;
+    --on-indigo:#FAFAFB;
+  }
+
+  /* ---------- base ---------- */
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  * { box-sizing: border-box; }
+
+  .lbl {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .sr {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  button, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
+
+  /* ---------- chrome ---------- */
+  .topbar {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px;
+    padding: 14px 22px;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+  }
+  .mark {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em;
+    text-transform: uppercase; font-weight: 600; color: var(--indigo);
+  }
+  .mark::before {
+    content: ""; display: inline-block; width: 7px; height: 7px;
+    margin-right: 8px; background: var(--indigo); vertical-align: 1px;
+  }
+  .topbar h1 {
+    margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .mockflag {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+    color: var(--thin); background: var(--thin-bg);
+    border: 1px solid var(--thin); border-radius: var(--r);
+    padding: 3px 8px;
+  }
+
+  .caveat {
+    padding: 10px 22px;
+    background: var(--card-sunk);
+    border-bottom: 1px solid var(--line);
+    font-size: 13px; color: var(--ink-2);
+  }
+  .caveat b { color: var(--ink); font-weight: 600; }
+
+  .frame {
+    display: grid;
+    grid-template-columns: 276px minmax(0, 1fr);
+    align-items: start;
+    gap: 0;
+    max-width: 1220px;
+    margin: 0 auto;
+  }
+
+  /* ---------- left rail ---------- */
+  .rail {
+    display: flex; flex-direction: column; gap: 24px;
+    padding: 22px 20px 40px;
+    border-right: 1px solid var(--line);
+    position: sticky; top: 0;
+  }
+  .step { display: flex; flex-direction: column; gap: 9px; }
+  .step-n {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+    color: var(--indigo); font-weight: 600;
+  }
+  .step h2 { margin: 0; font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip {
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+  .chip:hover { border-color: var(--indigo); }
+  .chip[aria-pressed="true"] {
+    background: var(--indigo); border-color: var(--indigo);
+    color: var(--on-indigo); font-weight: 500;
+  }
+
+  select {
+    width: 100%; padding: 7px 9px;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r); font-size: 13px;
+  }
+
+  /* ---------- legend ---------- */
+  .legend {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 14px; background: var(--card-sunk);
+    border: 1px solid var(--line-soft); border-radius: var(--r);
+  }
+  .legend-row { display: grid; grid-template-columns: 16px 1fr; gap: 10px; align-items: start; }
+  .legend-row p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
+  .legend-row b { color: var(--ink); font-weight: 600; }
+
+  .rule { border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--card-sunk); }
+  .rule summary {
+    padding: 11px 13px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink);
+  }
+  .rule ol { margin: 0; padding: 0 14px 13px 30px; display: flex; flex-direction: column; gap: 6px; }
+  .rule li { font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
+  .rule li b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- the evidence mark ---------- */
+  .mk {
+    width: 14px; height: 14px; border-radius: 2px; flex: none;
+    border: 1.25px solid var(--ink-3);
+  }
+  .mk-supports { background: var(--ok); border-color: var(--ok); }
+  .mk-silent   { background: transparent; border-color: var(--ink-3); }
+  .mk-missing  {
+    border-color: var(--void); border-style: dashed;
+    background: repeating-linear-gradient(
+      45deg, transparent 0 3px, var(--void) 3px 4px
+    );
+    opacity: .8;
+  }
+  .mk-conflicts {
+    background: var(--clash); border-color: var(--clash);
+    position: relative;
+  }
+  .mk-conflicts::after {
+    content: ""; position: absolute; inset: 3px;
+    border-top: 1.5px solid var(--card); transform: rotate(45deg);
+  }
+  /* Damaged record. Deliberately unlike mk-missing: an empty field is the facility's
+     silence, an unreadable one is our failure, and the two must never look alike. */
+  .mk-uncheckable {
+    background: var(--void-bg); border-color: var(--void);
+    border-style: dotted; position: relative;
+  }
+  .mk-uncheckable::after {
+    content: "?"; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    color: var(--void); line-height: 1;
+  }
+
+  /* ---------- results ---------- */
+  .results { padding: 22px 22px 60px; min-width: 0; }
+  .results-head {
+    display: flex; flex-direction: column; gap: 5px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid var(--line);
+  }
+  .results-head h2 {
+    margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.018em;
+    text-wrap: balance;
+  }
+  .head-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+  .count { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .rankrule { font-size: 12.5px; color: var(--ink-3); }
+
+  .list-head {
+    display: grid;
+    grid-template-columns: 26px minmax(0,1fr) var(--w-marks) var(--w-verdict);
+    gap: 14px; align-items: end;
+    padding: 14px 14px 7px;
+  }
+  .list-head > span { font-size: 11.5px; color: var(--ink-2); font-weight: 500; }
+  .head-fields { display: grid; grid-template-columns: repeat(4, 72px); }
+  .head-fields span { text-align: center; font-size: 11.5px; color: var(--ink-2); }
+
+  .list { list-style: none; margin: 0; padding: 0; }
+  .row {
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--card);
+  }
+  .row.is-open { background: var(--card-sunk); }
+
+  .row-btn {
+    width: 100%; display: grid;
+    grid-template-columns: 26px minmax(0,1fr) var(--w-marks) var(--w-verdict);
+    align-items: center; gap: 14px;
+    padding: 13px 14px;
+    background: none; border: 0; text-align: left; cursor: pointer;
+  }
+  .row-btn:hover { background: var(--indigo-lit); }
+  .rank {
+    font-family: var(--mono); font-size: 12.5px; color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .nm { min-width: 0; }
+  .nm strong { display: block; font-size: 14.5px; font-weight: 600; letter-spacing: -0.008em; }
+  .nm span { display: block; font-size: 12.5px; color: var(--ink-3); margin-top: 1px; }
+
+  .meter { display: grid; grid-template-columns: repeat(4, 72px); }
+  .mkcell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .mklbl { display: none; font-size: 10.5px; color: var(--ink-2); }
+
+  .verdict {
+    font-size: 12.5px; font-weight: 500; white-space: nowrap; justify-self: start;
+    padding: 4px 9px; border-radius: var(--r); border: 1px solid;
+  }
+  .v-ok    { color: var(--ok);    background: var(--ok-bg);    border-color: var(--ok); }
+  .v-thin  { color: var(--thin);  background: var(--thin-bg);  border-color: var(--thin); }
+  .v-clash { color: var(--clash); background: var(--clash-bg); border-color: var(--clash); }
+  .v-void  { color: var(--void);  background: var(--void-bg);  border-color: var(--void); }
+
+  /* ---------- expanded detail ---------- */
+  .detail { padding: 4px 14px 22px 54px; display: flex; flex-direction: column; gap: 16px; }
+  .detail[hidden] { display: none; }
+
+  .claimbox {
+    display: flex; flex-direction: column; gap: 3px;
+    padding: 11px 13px; background: var(--card);
+    border: 1px solid var(--line); border-radius: var(--r);
+  }
+  .claimbox strong { font-size: 14px; font-weight: 600; }
+  .cite {
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+  }
+
+  .ev { display: flex; flex-direction: column; gap: 7px; }
+  .ev-item {
+    display: grid; grid-template-columns: 14px 100px minmax(0,1fr);
+    gap: 12px; align-items: start;
+    padding: 9px 11px;
+    background: var(--card); border: 1px solid var(--line-soft);
+    border-radius: var(--r);
+  }
+  .ev-field {
+    font-size: 12px; font-weight: 600; color: var(--ink-2); padding-top: 1px;
+  }
+  .ev-txt { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+  .ev-txt mark {
+    background: var(--ok-bg); color: var(--ok);
+    padding: 0 2px; border-radius: 2px; font-weight: 600;
+  }
+  .ev-txt mark.bad { background: var(--clash-bg); color: var(--clash); }
+  .ev-txt em { font-style: normal; color: var(--ink-3); }
+
+  /* Which check decided this field, and what it cost. */
+  .ev-by {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px;
+    margin: 6px 0 0;
+  }
+  .by-check, .by-cost {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 1px 6px;
+    border: 1px solid var(--line); border-radius: var(--r);
+    color: var(--ink-3);
+  }
+  .by-check { color: var(--indigo); border-color: var(--indigo); }
+  .by-cost.is-paid { color: var(--thin); border-color: var(--thin); background: var(--thin-bg); }
+  .by-note { font-size: 12px; color: var(--ink-3); line-height: 1.45; }
+
+  .cost {
+    margin: 0; padding: 9px 12px;
+    background: var(--card-sunk); border: 1px solid var(--line-soft);
+    border-radius: var(--r);
+    font-size: 12.5px; color: var(--ink-2); line-height: 1.5;
+  }
+  .cost b { color: var(--ink); font-weight: 600; }
+
+  .why {
+    padding: 10px 12px; border-left: 2px solid var(--indigo);
+    background: var(--indigo-lit); border-radius: 0 var(--r) var(--r) 0;
+  }
+  .why p { margin: 0; font-size: 13.5px; line-height: 1.5; }
+
+  .unknown {
+    padding: 10px 12px; border-left: 2px solid var(--void);
+    background: var(--void-bg); border-radius: 0 var(--r) var(--r) 0;
+  }
+  .unknown p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+  .unknown b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- review actions ---------- */
+  .ovr { display: flex; flex-direction: column; gap: 10px; }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
+  .btn {
+    padding: 7px 13px; cursor: pointer;
+    background: var(--card); color: var(--ink);
+    border: 1px solid var(--line); border-radius: var(--r);
+    font-size: 13px; font-weight: 500;
+  }
+  .btn:hover { border-color: var(--indigo); color: var(--indigo); }
+  .btn-go { background: var(--indigo); border-color: var(--indigo); color: var(--on-indigo); }
+  .btn-go:hover { background: var(--indigo); border-color: var(--indigo); color: var(--on-indigo); opacity: .88; }
+
+  .form { display: flex; flex-direction: column; gap: 9px; max-width: 580px; }
+  .form textarea {
+    padding: 9px 10px; min-height: 68px; resize: vertical;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r); font-size: 13.5px; line-height: 1.5;
+  }
+
+  .saved {
+    display: flex; flex-direction: column; gap: 5px;
+    padding: 10px 12px; max-width: 580px;
+    background: var(--card); border: 1px solid var(--indigo);
+    border-radius: var(--r);
+  }
+  .saved p { margin: 0; font-size: 13.5px; line-height: 1.5; }
+  .saved-by {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
+    color: var(--indigo); text-transform: uppercase;
+  }
+
+  .note-tag {
+    font-size: 11px; color: var(--indigo);
+    border: 1px solid var(--indigo); border-radius: var(--r);
+    padding: 1px 6px; margin-top: 4px; display: inline-block;
+  }
+
+  /* ---------- the honest divider ---------- */
+  .band {
+    display: flex; flex-direction: column; gap: 5px; align-items: flex-start;
+    margin: 26px 0 0; padding: 14px 14px 13px;
+    border: 1px dashed var(--void); border-radius: var(--r);
+    background: repeating-linear-gradient(45deg, transparent 0 6px, var(--void-bg) 6px 12px);
+  }
+  .band h3 { margin: 0; font-size: 14px; font-weight: 600; }
+  .band p { margin: 0; font-size: 13px; color: var(--ink-2); max-width: 62ch; }
+  .band .btn { margin-top: 4px; }
+
+  .empty {
+    margin: 18px 0 0; padding: 16px;
+    border: 1px dashed var(--line); border-radius: var(--r);
+    font-size: 13.5px; color: var(--ink-2);
+  }
+
+  @media (max-width: 900px) {
+    .frame { grid-template-columns: 1fr; }
+    .rail { position: static; border-right: 0; border-bottom: 1px solid var(--line); }
+    .list-head { display: none; }
+    .row-btn { grid-template-columns: 22px minmax(0,1fr); row-gap: 10px; }
+    .meter { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .mklbl { display: block; text-align: center; }
+    .verdict { grid-column: 1 / -1; }
+    .detail { padding-left: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<header class="topbar">
+  <span class="mark">Facility Trust Desk</span>
+  <h1>Does a facility&rsquo;s record support what it claims?</h1>
+  <span class="mockflag">Live bounded slice &middot; free checks only</span>
+</header>
+
+<p class="caveat">
+  <b>Record-based assessment.</b> This tool reads what each facility&rsquo;s record says. It has not
+  independently confirmed current clinical capability, staffing, or whether equipment is in working order.
+</p>
+
+<div class="frame">
+  <aside class="rail">
+    <div class="step">
+      <span class="step-n">STEP 1</span>
+      <h2>What capability do you need?</h2>
+      <div class="chips" id="caps"></div>
+    </div>
+
+    <div class="step">
+      <span class="step-n">STEP 2</span>
+      <h2>Where?</h2>
+      <select id="region" aria-label="Region"></select>
+    </div>
+
+    <div class="legend">
+      <span class="lbl">Reading the evidence marks</span>
+      <div class="legend-row">
+        <span class="mk mk-supports"></span>
+        <p><b>Backs the claim.</b> This field says something that supports it.</p>
+      </div>
+      <div class="legend-row">
+        <span class="mk mk-silent"></span>
+        <p><b>Unresolved.</b> The free checks could not settle this field.</p>
+      </div>
+      <div class="legend-row">
+        <span class="mk mk-missing"></span>
+        <p><b>No data at all.</b> Field is empty. Absence of proof, not proof of absence.</p>
+      </div>
+      <div class="legend-row">
+        <span class="mk mk-conflicts"></span>
+        <p><b>Contradicts.</b> This field says the opposite of the claim.</p>
+      </div>
+      <div class="legend-row">
+        <span class="mk mk-uncheckable"></span>
+        <p><b>Could not be read.</b> The record itself is damaged. This is our failure, not the facility&rsquo;s.</p>
+      </div>
+    </div>
+
+    <details class="rule">
+      <summary>How the assessment is decided</summary>
+      <ol>
+        <li>Any field could not be read &rarr; <b>Could not check</b>.</li>
+        <li>Any field contradicts the claim &rarr; <b>Conflicting evidence</b>.</li>
+        <li>Fewer than 3 of the 4 fields hold any data &rarr; <b>Not enough data</b>.</li>
+        <li>3 or more fields back the claim &rarr; <b>Strong record support</b>.</li>
+        <li>Anything else &rarr; <b>Limited record support</b>.</li>
+      </ol>
+    </details>
+  </aside>
+
+  <main class="results">
+    <div class="results-head">
+      <h2 id="title"></h2>
+      <div class="head-meta">
+        <span class="count" id="tally"></span>
+        <span class="rankrule">Ordered by strength and consistency of the record &mdash; not by facility quality.</span>
+      </div>
+    </div>
+
+    <div id="assessed-wrap"></div>
+    <div id="unrated-wrap"></div>
+  </main>
+</div>
+
+<script>
+  const FIELDS = [
+    ["description", "Description"],
+    ["capability", "Capability"],
+    ["equipment", "Equipment"],
+    ["procedure", "Procedure"]
+  ];
+  const VERDICT = {
+    strong_support: { label: "Strong record support", cls: "v-ok" },
+    limited_support: { label: "Limited record support", cls: "v-thin" }
+  };
+  const MARK_TEXT = {
+    supports: "backs the claim",
+    missing: "no data at all",
+    unresolved: "unresolved by free checks"
+  };
+  const ui = {
+    options: null,
+    capability: null,
+    region: null,
+    facilities: [],
+    receipts: new Map(),
+    reviews: new Map()
+  };
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>'"]/g, character => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+    })[character]);
+  }
+
+  function markClass(mark) {
+    return mark === "unresolved" ? "silent" : mark;
+  }
+
+  function regionsFor(capability) {
+    return ui.options.regions_by_capability?.[capability] || ui.options.regions;
+  }
+
+  function meterHtml(marks) {
+    return `<span class="meter">${FIELDS.map(([field, label]) => {
+      const mark = marks[field] || "unresolved";
+      return `<span class="mkcell">
+        <span class="mk mk-${markClass(mark)}" title="${escapeHtml(label)}: ${escapeHtml(MARK_TEXT[mark])}"></span>
+        <span class="mklbl">${escapeHtml(label)}</span>
+        <span class="sr">${escapeHtml(label)}: ${escapeHtml(MARK_TEXT[mark])}.</span>
+      </span>`;
+    }).join("")}</span>`;
+  }
+
+  function sourceSetHtml(sources) {
+    if (!sources.length) return "<p class=\"ev-txt\"><em>No row source URLs were supplied.</em></p>";
+    return `<ol>${sources.map((source, index) => {
+      try {
+        const url = new URL(source);
+        if (!["http:", "https:"].includes(url.protocol)) throw new Error("unsupported protocol");
+        return `<li><a href="${escapeHtml(url.href)}" target="_blank" rel="noreferrer">Row source ${index + 1}</a></li>`;
+      } catch (_) {
+        return `<li>${escapeHtml(source)}</li>`;
+      }
+    }).join("")}</ol>`;
+  }
+
+  function evidenceHtml(detail) {
+    const decided = detail.receipt.filter(item => item.outcome === "decision");
+    return `<div class="ev">${decided.map(item => `
+      <div class="ev-item">
+        <span class="mk mk-${markClass(item.mark)}" title="${escapeHtml(MARK_TEXT[item.mark])}"></span>
+        <span class="ev-field">${escapeHtml(item.field)} [${item.item_index}]</span>
+        <div>
+          <p class="ev-txt">${item.text === null ? "<em>Empty.</em>" : escapeHtml(item.text)}</p>
+          <p class="ev-by">
+            <span class="by-check">${escapeHtml(item.deciding_check)}</span>
+            <span class="by-cost">free</span>
+            <span class="by-note">v${escapeHtml(item.check_version)} &middot; ${escapeHtml(item.rationale)}</span>
+          </p>
+        </div>
+      </div>`).join("")}</div>`;
+  }
+
+  function reviewHtml(facility) {
+    const review = ui.reviews.get(facility.record_key);
+    if (!review) {
+      return `<div class="ovr">
+        <div class="btnrow">
+          <button class="btn" data-act="confirm">Confirm assessment</button>
+          <button class="btn" data-act="open-override">Disagree? Override with a note</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="ovr">
+      <div class="saved">
+        <span class="saved-by">${review.decision === "confirmed" ? "Confirmed" : "Overridden"} by you &middot; persisted</span>
+        <p>${escapeHtml(review.note || "You agreed with this reading of the record.")}</p>
+      </div>
+      <div class="btnrow"><button class="btn" data-act="open-override">${review.decision === "confirmed" ? "Change to override" : "Edit note"}</button></div>
+    </div>`;
+  }
+
+  function detailHtml(facility, detail) {
+    return `<div class="claimbox">
+        <strong>Claim assessed: Facility provides ${escapeHtml(facility.capability)} care</strong>
+        <span class="cite">Record ${escapeHtml(facility.record_key)} &middot; live India 10k slice &middot; exact items below</span>
+      </div>
+      <div class="why"><p><strong>Why this preview:</strong> ${facility.support_field_count} fields contain explicit free-check support, across ${facility.support_item_count} evidence items.</p></div>
+      ${evidenceHtml(detail)}
+      <p class="cost">Settled support shown by <b>free checks only</b>, with <b>no model calls</b>. ${facility.unresolved_item_count} item(s) remain unresolved.</p>
+      <div class="claimbox"><strong>Row-level source set</strong>${sourceSetHtml(detail.source_urls)}</div>
+      <div class="unknown"><p><b>Still unknown:</b> ${escapeHtml(detail.unknown_summary)}</p></div>
+      ${reviewHtml(facility)}`;
+  }
+
+  function rowHtml(facility) {
+    const verdict = VERDICT[facility.support_tier];
+    return `<li class="row" data-key="${escapeHtml(facility.record_key)}">
+      <button class="row-btn" aria-expanded="false" data-testid="facility-row">
+        <span class="rank">${String(facility.rank).padStart(2, "0")}</span>
+        <span class="nm">
+          <strong>${escapeHtml(facility.facility_name)}</strong>
+          <span>${escapeHtml(facility.region)} &middot; record ${escapeHtml(facility.record_key)}</span>
+        </span>
+        ${meterHtml(facility.marks)}
+        <span class="verdict ${verdict.cls}">${verdict.label}</span>
+      </button>
+      <div class="detail" hidden><p class="empty">Loading receipt&hellip;</p></div>
+    </li>`;
+  }
+
+  function paintControls() {
+    document.getElementById("caps").innerHTML = ui.options.capabilities.map(capability =>
+      `<button class="chip" aria-pressed="${capability === ui.capability}" data-cap="${escapeHtml(capability)}">${escapeHtml(capability)}</button>`
+    ).join("");
+    const regions = regionsFor(ui.capability);
+    document.getElementById("region").innerHTML = regions.map(region =>
+      `<option value="${escapeHtml(region)}"${region === ui.region ? " selected" : ""}>${escapeHtml(region)}</option>`
+    ).join("");
+  }
+
+  function paintResults() {
+    document.getElementById("title").textContent = `Records claiming ${ui.capability} · ${ui.region}`;
+    document.getElementById("tally").textContent = `${ui.facilities.length} ranked candidate${ui.facilities.length === 1 ? "" : "s"} · free-check preview`;
+    document.getElementById("assessed-wrap").innerHTML = ui.facilities.length ? `
+      <div class="list-head"><span></span><span>Facility</span>
+        <span class="head-fields">${FIELDS.map(([, label]) => `<span>${label}</span>`).join("")}</span>
+        <span>Assessment</span>
+      </div>
+      <ol class="list">${ui.facilities.map(rowHtml).join("")}</ol>`
+      : `<p class="empty">No selected candidates for ${escapeHtml(ui.capability)} in ${escapeHtml(ui.region)}. Choose another region.</p>`;
+    document.getElementById("unrated-wrap").innerHTML = `<div class="band">
+      <h3>This is a bounded free-check preview</h3>
+      <p>Unresolved evidence stays visible. These ranks describe record support, not facility quality or current clinical capability.</p>
+    </div>`;
+  }
+
+  async function loadResults() {
+    document.getElementById("assessed-wrap").innerHTML = "<p class=\"empty\">Loading the active completed slice&hellip;</p>";
+    const response = await fetch(`/api/results?capability=${encodeURIComponent(ui.capability)}&region=${encodeURIComponent(ui.region)}`);
+    if (!response.ok) throw new Error("results unavailable");
+    const payload = await response.json();
+    ui.facilities = payload.facilities;
+    paintResults();
+  }
+
+  async function loadReview(facility) {
+    const response = await fetch(`/api/reviews/${encodeURIComponent(facility.record_key)}?capability=${encodeURIComponent(facility.capability)}`);
+    if (response.ok) ui.reviews.set(facility.record_key, await response.json());
+  }
+
+  async function openReceipt(row) {
+    const facility = ui.facilities.find(item => item.record_key === row.dataset.key);
+    const detailBox = row.querySelector(".detail");
+    const button = row.querySelector(".row-btn");
+    if (!detailBox.hidden) {
+      detailBox.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+      row.classList.remove("is-open");
+      return;
+    }
+    let detail = ui.receipts.get(facility.record_key);
+    if (!detail) {
+      const response = await fetch(`/api/receipts/${encodeURIComponent(facility.record_key)}?capability=${encodeURIComponent(facility.capability)}`);
+      if (!response.ok) throw new Error("receipt unavailable");
+      detail = await response.json();
+      ui.receipts.set(facility.record_key, detail);
+      await loadReview(facility);
+    }
+    detailBox.innerHTML = detailHtml(facility, detail);
+    detailBox.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+    row.classList.add("is-open");
+  }
+
+  function openOverride(row) {
+    const facility = ui.facilities.find(item => item.record_key === row.dataset.key);
+    const saved = ui.reviews.get(facility.record_key);
+    row.querySelector(".ovr").innerHTML = `<div class="form">
+      <span class="lbl">What do you know that the record doesn&rsquo;t?</span>
+      <textarea maxlength="500" data-testid="override-note">${escapeHtml(saved?.note || "")}</textarea>
+      <div class="btnrow">
+        <button class="btn btn-go" data-act="save-override">Save override</button>
+        <button class="btn" data-act="cancel-override">Cancel</button>
+      </div>
+    </div>`;
+    row.querySelector("textarea").focus();
+  }
+
+  async function saveReview(row, decision) {
+    const facility = ui.facilities.find(item => item.record_key === row.dataset.key);
+    const note = decision === "overridden" ? row.querySelector("textarea").value.trim() : null;
+    if (decision === "overridden" && !note) return;
+    const response = await fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ record_key: facility.record_key, capability: facility.capability, decision, note })
+    });
+    if (!response.ok) {
+      row.querySelector("[data-review-error]")?.remove();
+      row.querySelector(".ovr").insertAdjacentHTML(
+        "beforeend",
+        '<p class="empty" data-review-error>Could not save this review. The ranking and receipt are still available.</p>'
+      );
+      return;
+    }
+    ui.reviews.set(facility.record_key, await response.json());
+    row.querySelector(".ovr").outerHTML = reviewHtml(facility);
+  }
+
+  document.addEventListener("click", async event => {
+    try {
+      const chip = event.target.closest(".chip");
+      if (chip) {
+        ui.capability = chip.dataset.cap;
+        ui.region = regionsFor(ui.capability)[0];
+        paintControls();
+        await loadResults();
+        return;
+      }
+      const row = event.target.closest(".row");
+      if (!row) return;
+      if (event.target.closest(".row-btn")) return await openReceipt(row);
+      if (event.target.closest('[data-act="confirm"]')) return await saveReview(row, "confirmed");
+      if (event.target.closest('[data-act="open-override"]')) return openOverride(row);
+      if (event.target.closest('[data-act="cancel-override"]')) {
+        const facility = ui.facilities.find(item => item.record_key === row.dataset.key);
+        row.querySelector(".ovr").outerHTML = reviewHtml(facility);
+        return;
+      }
+      if (event.target.closest('[data-act="save-override"]')) return await saveReview(row, "overridden");
+    } catch (error) {
+      document.getElementById("assessed-wrap").innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`;
+    }
+  });
+
+  document.getElementById("region").addEventListener("change", async event => {
+    ui.region = event.target.value;
+    await loadResults();
+  });
+
+  (async () => {
+    try {
+      const response = await fetch("/api/options");
+      if (!response.ok) throw new Error("active slice unavailable");
+      ui.options = await response.json();
+      ui.capability = ui.options.capabilities[0];
+      ui.region = regionsFor(ui.capability)[0];
+      paintControls();
+      await loadResults();
+    } catch (error) {
+      document.getElementById("assessed-wrap").innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`;
+    }
+  })();
+</script>

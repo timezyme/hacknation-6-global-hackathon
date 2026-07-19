@@ -2,3 +2,7 @@ command: ["uvicorn", "app.main:app"]
 env:
   - name: "TRUSTDESK_POSTGRES_ENDPOINT"
     valueFrom: "postgres"
+  - name: "TRUSTDESK_SQL_WAREHOUSE_ID"
+    valueFrom: "warehouse"
+  - name: "TRUSTDESK_RESULTS_TABLE"
+    valueFrom: "results"
