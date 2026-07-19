@@ -2,13 +2,13 @@
 
 **Status:** `complete_preliminary`
 
-**Evidence gate:** NOT GREEN — assistant-labelled rehearsal; human validation is still required.
+**Evidence gate:** GREEN — 60 blind human labels completed and the current holdout safety gate passed.
 
-**Decision:** REHEARSAL ONLY: keep the free-check demo, but do not claim human-validated safety or scale the model path.
+**Decision:** GO for the free-check demo; do not scale the model path at this observed escalation rate.
 
 60 evidence items were labelled in complete six-capability waves (36 development, 24 holdout; minimum 60).
-The sealed reviewer was read from the Delta label rows, not supplied to this report command.
-This is a timeboxed assistant review, not human ground truth, final accuracy, or proof of current clinical capability.
+A human reviewer saw each selected row item without the system prediction. Reviewer provenance was read from the sealed Delta rows.
+This is preliminary evidence-label agreement, not final accuracy or proof of current clinical capability.
 
 ## Holdout safety action
 
@@ -64,6 +64,7 @@ These counts stay separate because generic negatives often describe unrelated se
 
 ## Frozen manifests
 
+- Pilot: `pilot-e8e4ef3b40b10136-human-v1`
 - Queue: `e8e4ef3b40b101361fefaca411ec1738a28b2f02a679121bb9c1d19b2d4bd1e5`
 - Development: `e64c3fdcc09d8b709a63380d390c675e3b249aea5fb158bff198dd2713edcf8a`
 - Holdout: `67efe3a8fac08b6c99bde16d3e995c577be805a869c5734f7487e04d826c8032`

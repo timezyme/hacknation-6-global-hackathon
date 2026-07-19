@@ -228,6 +228,34 @@ def validate_label_extension(
     return submitted
 
 
+def evidence_gate_status(
+    label_count: int,
+    *,
+    human_labels: bool,
+    holdout_passed: bool,
+) -> dict[str, object]:
+    """State the preliminary evidence gate without treating assistant review as human evidence."""
+    if not human_labels:
+        return {
+            "passed": False,
+            "reason": "assistant-labelled rehearsal; human validation is still required",
+        }
+    if label_count < MINIMUM_LABELS:
+        return {
+            "passed": False,
+            "reason": f"only {label_count} blind human labels completed; minimum is {MINIMUM_LABELS}",
+        }
+    if not holdout_passed:
+        return {
+            "passed": False,
+            "reason": "the current holdout safety gate failed",
+        }
+    return {
+        "passed": True,
+        "reason": "60 blind human labels completed and the current holdout safety gate passed",
+    }
+
+
 def _wilson(successes: int, total: int) -> list[float] | None:
     if total == 0:
         return None

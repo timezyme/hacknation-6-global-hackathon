@@ -15,6 +15,7 @@ from trustdesk.evaluation import (
     PilotQueue,
     build_queue,
     evaluate_pilot,
+    evidence_gate_status,
     validate_label_extension,
     validate_labels,
 )
@@ -122,6 +123,16 @@ def test_sealed_label_prefix_can_extend_from_minimum_to_target_but_cannot_change
     changed[0]["label"] = "irrelevant"
     with pytest.raises(ValueError, match="sealed blind labels cannot change"):
         validate_label_extension(queue, submitted[:60], changed)
+
+
+def test_evidence_gate_requires_blind_human_minimum_and_safe_holdout():
+    assert evidence_gate_status(60, human_labels=True, holdout_passed=True) == {
+        "passed": True,
+        "reason": "60 blind human labels completed and the current holdout safety gate passed",
+    }
+    assert evidence_gate_status(60, human_labels=False, holdout_passed=True)["passed"] is False
+    assert evidence_gate_status(54, human_labels=True, holdout_passed=True)["passed"] is False
+    assert evidence_gate_status(60, human_labels=True, holdout_passed=False)["passed"] is False
 
 
 def unsafe_holdout_fixture() -> tuple[PilotQueue, tuple[FacilityRecord, ...], tuple[BlindLabel, ...]]:

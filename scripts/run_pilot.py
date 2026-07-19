@@ -22,6 +22,7 @@ from trustdesk.evaluation import (
     PilotQueue,
     build_queue,
     evaluate_pilot,
+    evidence_gate_status,
     validate_label_extension,
     validate_labels,
 )
@@ -32,6 +33,8 @@ from trustdesk.models import FacilityRecord
 
 PROFILE = "trustdesk-spike"
 QUEUE_SEED = "trustdesk-phase-4-v1"
+LABEL_SET = "human-v1"
+HUMAN_LABELER = "human_reviewer"
 LABEL_TABLE = "workspace.default.trustdesk_pilot_labels"
 ARTIFACT_PATH = Path("artifacts/pilot-summary.json")
 REPORT_PATH = Path("docs/pilot-results.md")
@@ -143,7 +146,7 @@ def _live_queue(
 
 
 def _pilot_id(queue: PilotQueue) -> str:
-    return f"pilot-{queue.queue_hash[:16]}"
+    return f"pilot-{queue.queue_hash[:16]}-{LABEL_SET}"
 
 
 def _queue_values(queue: PilotQueue) -> tuple[tuple[object, ...], ...]:
@@ -364,6 +367,23 @@ def render_report(summary: Mapping[str, Any]) -> str:
     model = summary["model_call_projection"]
     gate = summary["holdout_gate"]
     evidence_gate = summary["evidence_gate"]
+    gate_label = "GREEN" if evidence_gate["passed"] else "NOT GREEN"
+    if summary["labeling"]["human_review"]:
+        reviewer_context = (
+            "A human reviewer saw each selected row item without the system prediction. "
+            "Reviewer provenance was read from the sealed Delta rows."
+        )
+        evidence_limit = (
+            "This is preliminary evidence-label agreement, not final accuracy or proof of current clinical capability."
+        )
+    else:
+        reviewer_context = (
+            "The sealed reviewer was read from the Delta label rows, not supplied to this report command."
+        )
+        evidence_limit = (
+            "This is a timeboxed assistant review, not human ground truth, final accuracy, "
+            "or proof of current clinical capability."
+        )
     if not evidence_gate["passed"]:
         decision = (
             "REHEARSAL ONLY: keep the free-check demo, but do not claim human-validated safety "
@@ -383,7 +403,7 @@ def render_report(summary: Mapping[str, Any]) -> str:
         "",
         f"**Status:** `{summary['status']}`",
         "",
-        f"**Evidence gate:** NOT GREEN — {evidence_gate['reason']}.",
+        f"**Evidence gate:** {gate_label} — {evidence_gate['reason']}.",
         "",
         f"**Decision:** {decision}",
         "",
@@ -391,11 +411,8 @@ def render_report(summary: Mapping[str, Any]) -> str:
             f"{labels['actual']} evidence items were labelled in complete six-capability waves "
             f"({labels['development']} development, {labels['holdout']} holdout; minimum {labels['minimum']})."
         ),
-        "The sealed reviewer was read from the Delta label rows, not supplied to this report command.",
-        (
-            "This is a timeboxed assistant review, not human ground truth, final accuracy, "
-            "or proof of current clinical capability."
-        ),
+        reviewer_context,
+        evidence_limit,
         "",
         "## Holdout safety action",
         "",
@@ -452,6 +469,7 @@ def render_report(summary: Mapping[str, Any]) -> str:
             "",
             "## Frozen manifests",
             "",
+            f"- Pilot: `{summary['pilot_id']}`",
             f"- Queue: `{hashes['queue']}`",
             f"- Development: `{hashes['development_manifest']}`",
             f"- Holdout: `{hashes['holdout_manifest']}`",
@@ -481,7 +499,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--input", type=Path)
     parser.add_argument("--waves", type=int, default=10)
-    parser.add_argument("--labeler", default="independent_codex_reviewer")
+    parser.add_argument("--labeler", default=HUMAN_LABELER)
     args = parser.parse_args()
     stage = args.command
     try:
@@ -512,17 +530,20 @@ def main() -> int:
                 asserted_claim_count=asserted_claim_count,
             )
             summary["generated_at"] = datetime.now(UTC).isoformat()
+            summary["pilot_id"] = _pilot_id(queue)
+            human_review = labelers == (HUMAN_LABELER,)
             summary["labeling"] = {
                 "blind": True,
                 "reviewers": list(labelers),
                 "reviewer_type": labelers[0] if len(labelers) == 1 else "multiple_reviewers",
-                "human_ground_truth": False,
+                "human_review": human_review,
                 "unit": "one deterministically sampled evidence item per queued claim",
             }
-            summary["evidence_gate"] = {
-                "passed": False,
-                "reason": "assistant-labelled rehearsal; human validation is still required",
-            }
+            summary["evidence_gate"] = evidence_gate_status(
+                summary["labels"]["actual"],
+                human_labels=human_review,
+                holdout_passed=summary["holdout_gate"]["passed"],
+            )
             summary["holdout_gate"]["initial_observed_failures"] = {
                 "false_support": 1,
                 "false_conflict": 0,

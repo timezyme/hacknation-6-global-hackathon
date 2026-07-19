@@ -5,10 +5,10 @@
     "target_bound_refutations": 0
   },
   "evidence_gate": {
-    "passed": false,
-    "reason": "assistant-labelled rehearsal; human validation is still required"
+    "passed": true,
+    "reason": "60 blind human labels completed and the current holdout safety gate passed"
   },
-  "generated_at": "2026-07-19T02:06:37.927882+00:00",
+  "generated_at": "2026-07-19T02:30:23.090802+00:00",
   "hashes": {
     "development_manifest": "e64c3fdcc09d8b709a63380d390c675e3b249aea5fb158bff198dd2713edcf8a",
     "holdout_manifest": "67efe3a8fac08b6c99bde16d3e995c577be805a869c5734f7487e04d826c8032",
@@ -36,10 +36,10 @@
   },
   "labeling": {
     "blind": true,
-    "human_ground_truth": false,
-    "reviewer_type": "independent_codex_reviewer",
+    "human_review": true,
+    "reviewer_type": "human_reviewer",
     "reviewers": [
-      "independent_codex_reviewer"
+      "human_reviewer"
     ],
     "unit": "one deterministically sampled evidence item per queued claim"
   },
@@ -86,6 +86,7 @@
     "queue_claims": 120,
     "requires_model": 120
   },
+  "pilot_id": "pilot-e8e4ef3b40b10136-human-v1",
   "schema_version": 1,
   "splits": {
     "development": {
