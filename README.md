@@ -4,6 +4,7 @@
 
 Built for Hack-Nation Challenge 04, *Data Legend* — Databricks x Virtue Foundation.
 
+> **[Watch the full app tour — 4 min, every screen and panel](artifacts/trustdesk-tour.mp4)** ·
 > [Architecture](docs/architecture.md) ·
 > [Demo runbook](docs/demo-runbook.md) ·
 > [Submission notes](docs/submission.md)
@@ -122,6 +123,9 @@ claim is settled in batch, published atomically (a partial run can never become 
 app only reads verdicts and writes reviews.
 
 ## The app
+
+**A narrated in-depth tour of the deployed app — every screen and panel — is committed at
+[artifacts/trustdesk-tour.mp4](artifacts/trustdesk-tour.mp4)** (GitHub plays it in the browser).
 
 Deployed live on Databricks Free Edition (workspace login required; see
 [docs/demo-runbook.md](docs/demo-runbook.md) for restart and verification). The planner's whole

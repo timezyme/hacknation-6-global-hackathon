@@ -15,5 +15,6 @@ __pycache__/
 .coverage
 HANDOFF.md
 
-# Video files stay local; the submission videos are delivered outside the repo.
+# Video files stay local, except the committed narrated app tour.
 *.mp4
+!artifacts/trustdesk-tour.mp4
