@@ -550,11 +550,11 @@ The config contains one qualified remote check or explicitly disables it. The ru
 unchanged, the labelled artifact measures behavior, and MLflow proves traceability and runtime. At
 this go/no-go checkpoint, approve full, capped-model, or free-check-only mode before Phase 6.
 
-## Phase 5C — Referee pass over free-check decisions *(amendment — core implemented; receipt wiring pending)*
+## Phase 5C — Referee pass over free-check decisions *(amendment — implemented)*
 
 **Status:** the module, tests, config, contract update, and `artifacts/referee-summary.json` are
-done and committed. Still open: wiring referee findings into batch receipts (Phase 6 files) and
-displaying them (Phase 8).
+done and committed. Phase 6 completed the batch-receipt wiring; displaying referee findings remains
+part of Phase 8.
 
 ### Objective
 
@@ -644,6 +644,15 @@ The Delta tables and completed batch manifest form a reproducible, rollback-safe
 Proceed to Phase 7 when the gate is green.
 
 ## Phase 7 — Harden the read API and persistent review workflow
+
+**Blocker carried from the Phase 6 review:** the new `trustdesk_receipts` items use `final_outcome`
+and keep per-item `check_version`/`rationale` only inside `attempts`, while `app/index.html`
+filters on `item.outcome` and renders those keys directly — pointing the app at the new tables
+without translating renders zero evidence items. The Phase 7 repository adapter must translate the
+new shape to the UI contract (or batch must emit the legacy keys). Also carried: the manifest
+hardcodes `model_mode="disabled"`/`model_version=None` — guard or derive it before any config ever
+enables a metered check; and the production `DatabricksSink` is untested against a live warehouse,
+so the first full live run is still an open Phase 6 gate item.
 
 ### Objective
 
