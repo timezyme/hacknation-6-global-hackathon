@@ -1,0 +1,23 @@
+{
+  "embedding_endpoint": "databricks-gte-large-en",
+  "endpoint_name": "trustdesk-vector",
+  "endpoint_state": "EndpointStatusState.ONLINE",
+  "framing": "similarity context only, not verification",
+  "generated_at": "2026-07-19T04:02:41.462826+00:00",
+  "index": {
+    "indexed_row_count": 500,
+    "ready": true
+  },
+  "index_name": "workspace.default.trustdesk_facility_text_index",
+  "schema_version": 1,
+  "smoke": {
+    "neighbor_count": 3,
+    "passed": true,
+    "query_terms": "ICU intensive care unit ventilator critical care beds",
+    "regions_returned": 3,
+    "top_score": 0.5823072778909015
+  },
+  "source_row_count": 500,
+  "source_table": "workspace.default.trustdesk_facility_text",
+  "status": "pass"
+}
