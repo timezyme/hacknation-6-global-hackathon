@@ -194,7 +194,7 @@ script.
 ### Files, maximum four
 
 - `docs/architecture.md`
-- `docs/demo-script.md` — new
+- the demo script — new
 - `docs/strategy.md` — superseded banner only
 - `docs/verdict-contract.md` — superseded banner only
 
@@ -204,9 +204,9 @@ script.
   claim population, ranking rule, evaluation method, and fallback modes.
 - `docs/strategy.md` and `docs/verdict-contract.md` receive short superseded banners that point to
   `docs/architecture.md`; their stale bodies are not rewritten.
-- In `docs/architecture.md` and `docs/demo-script.md`, Sonnet, Opus, live model calls, MinerU,
+- In `docs/architecture.md` and the demo script, Sonnet, Opus, live model calls, MinerU,
   LlamaIndex, retrieval, and referee behavior are absent or explicitly outside the critical path.
-- `docs/demo-script.md` completes the required workflow in 60 seconds or less when read aloud.
+- The demo script completes the required workflow in 60 seconds or less when read aloud.
 - No code changes occur in this phase.
 
 ### Verifiable outcome
@@ -785,7 +785,7 @@ Prove the same workflow works on Databricks Free Edition and preserve evidence t
    script to call out the brief's research questions this system answers: confidence intervals
    around check performance, corroborated claims versus bare listings via the four field grades,
    and the data-desert versus medical-desert distinction. The brief awards a real-impact bonus only
-   if this is said out loud. The demo-script callouts are in `docs/demo-script.md` (bolded);
+   if this is said out loud. The demo-script callouts are done (bolded);
    `docs/submission.md` still needs its paragraph.
 
 ### Files, maximum five
