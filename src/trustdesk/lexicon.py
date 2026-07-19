@@ -4,9 +4,8 @@ Everything here is a tuning surface, not settled truth. The term lists were writ
 concept mock's fixtures and must be revised once the real `description` text is in hand — see
 `docs/verdict-contract.md`, open questions 6 and 7.
 
-Over-matching a capability term is cheap: it sends the field to a higher rung or marks it as
-supported, and a later rung can still disagree. Missing a term is expensive: the field goes
-`silent` and nothing ever revisits it. Bias the lists toward recall.
+Over-matching is unsafe because the first accepted decision wins. A non-match abstains for a later
+check, so this vocabulary stays conservative and drops terms that fail the sealed holdout gate.
 """
 
 from __future__ import annotations
@@ -37,7 +36,7 @@ CAPABILITY_TERMS: dict[str, tuple[str, ...]] = {
     ),
     "trauma": (
         "trauma centre", "trauma center", "fracture", "orthopaedic", "orthopedic",
-        "road traffic", "resuscitation", "accident", "trauma", "injury", "injuries",
+        "road traffic", "resuscitation", "accident", "trauma",
     ),
     "NICU": (
         "neonatal intensive care", "neonatology", "neonatal", "newborn", "preterm",

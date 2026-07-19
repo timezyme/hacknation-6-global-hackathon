@@ -1,0 +1,592 @@
+{
+  "contradiction_prevalence": {
+    "generic_negative_language_hits": 0,
+    "labelled_items": 60,
+    "target_bound_refutations": 0
+  },
+  "evidence_gate": {
+    "passed": false,
+    "reason": "assistant-labelled rehearsal; human validation is still required"
+  },
+  "generated_at": "2026-07-19T02:06:37.927882+00:00",
+  "hashes": {
+    "development_manifest": "e64c3fdcc09d8b709a63380d390c675e3b249aea5fb158bff198dd2713edcf8a",
+    "holdout_manifest": "67efe3a8fac08b6c99bde16d3e995c577be805a869c5734f7487e04d826c8032",
+    "queue": "e8e4ef3b40b101361fefaca411ec1738a28b2f02a679121bb9c1d19b2d4bd1e5",
+    "rule_configuration": "bb98071069889f7b91e230cf8e969679dcdef6e3ea849069fdb7cac35ead2727"
+  },
+  "holdout_gate": {
+    "history_provenance": "manually recorded from the first sealed holdout score before the abstention fallback",
+    "initial_observed_failures": {
+      "false_conflict": 0,
+      "false_support": 1
+    },
+    "passed": true,
+    "safety_actions": [
+      {
+        "action": "removed the generic terms; the vocabulary check now abstains",
+        "capability": "trauma",
+        "case_class": "generic injury or injuries terms without explicit trauma context",
+        "check_id": "vocabulary",
+        "failing_example_id": "501d65158a3853492eec94633b7d8089dc06813ab0c8e8d84cd9fba826b75e9e",
+        "initial_false_supports": 1
+      }
+    ],
+    "unsafe_checks": []
+  },
+  "labeling": {
+    "blind": true,
+    "human_ground_truth": false,
+    "reviewer_type": "independent_codex_reviewer",
+    "reviewers": [
+      "independent_codex_reviewer"
+    ],
+    "unit": "one deterministically sampled evidence item per queued claim"
+  },
+  "labels": {
+    "actual": 60,
+    "development": 36,
+    "holdout": 24,
+    "minimum": 60,
+    "target": 120
+  },
+  "model_call_projection": {
+    "by_capability": {
+      "ICU": {
+        "queue_claims": 20,
+        "requires_model": 20
+      },
+      "NICU": {
+        "queue_claims": 20,
+        "requires_model": 20
+      },
+      "emergency": {
+        "queue_claims": 20,
+        "requires_model": 20
+      },
+      "maternity": {
+        "queue_claims": 20,
+        "requires_model": 20
+      },
+      "oncology": {
+        "queue_claims": 20,
+        "requires_model": 20
+      },
+      "trauma": {
+        "queue_claims": 20,
+        "requires_model": 20
+      }
+    },
+    "economically_plausible": false,
+    "estimated_live_claims": 10505,
+    "free_settled": 0,
+    "live_asserted_claims": 10505,
+    "maximum_plausible_rate": 0.5,
+    "model_call_rate": 1.0,
+    "queue_claims": 120,
+    "requires_model": 120
+  },
+  "schema_version": 1,
+  "splits": {
+    "development": {
+      "by_capability": {
+        "ICU": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 6,
+            "attempts": 6,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.390343
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 1.0,
+            "abstentions": 6,
+            "attempts": 6,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.390343
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.0
+          }
+        },
+        "NICU": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 6,
+            "attempts": 6,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.390343
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 0.833333,
+            "abstentions": 5,
+            "attempts": 6,
+            "correct_decisions": 1,
+            "coverage_95_ci": [
+              0.030053,
+              0.563509
+            ],
+            "decision_precision": 1.0,
+            "decisions": 1,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": [
+              0.206543,
+              1.0
+            ],
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.166667
+          }
+        },
+        "emergency": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 6,
+            "attempts": 6,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.390343
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 0.833333,
+            "abstentions": 5,
+            "attempts": 6,
+            "correct_decisions": 1,
+            "coverage_95_ci": [
+              0.030053,
+              0.563509
+            ],
+            "decision_precision": 1.0,
+            "decisions": 1,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": [
+              0.206543,
+              1.0
+            ],
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.166667
+          }
+        },
+        "maternity": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 6,
+            "attempts": 6,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.390343
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 0.833333,
+            "abstentions": 5,
+            "attempts": 6,
+            "correct_decisions": 1,
+            "coverage_95_ci": [
+              0.030053,
+              0.563509
+            ],
+            "decision_precision": 1.0,
+            "decisions": 1,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": [
+              0.206543,
+              1.0
+            ],
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.166667
+          }
+        },
+        "oncology": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 6,
+            "attempts": 6,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.390343
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 1.0,
+            "abstentions": 6,
+            "attempts": 6,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.390343
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.0
+          }
+        },
+        "trauma": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 6,
+            "attempts": 6,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.390343
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 1.0,
+            "abstentions": 6,
+            "attempts": 6,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.390343
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 6,
+            "selective_coverage": 0.0
+          }
+        }
+      },
+      "denominator": 36
+    },
+    "holdout": {
+      "by_capability": {
+        "ICU": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          }
+        },
+        "NICU": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          }
+        },
+        "emergency": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          }
+        },
+        "maternity": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          }
+        },
+        "oncology": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          }
+        },
+        "trauma": {
+          "presence": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          },
+          "vocabulary": {
+            "abstention_rate": 1.0,
+            "abstentions": 4,
+            "attempts": 4,
+            "correct_decisions": 0,
+            "coverage_95_ci": [
+              0.0,
+              0.4899
+            ],
+            "decision_precision": null,
+            "decisions": 0,
+            "errors": 0,
+            "false_conflict": 0,
+            "false_support": 0,
+            "precision_95_ci": null,
+            "processing_failures": 0,
+            "sample_count": 4,
+            "selective_coverage": 0.0
+          }
+        }
+      },
+      "denominator": 24
+    }
+  },
+  "status": "complete_preliminary"
+}

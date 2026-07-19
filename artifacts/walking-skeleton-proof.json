@@ -23,12 +23,19 @@
     "override_persisted": true
   },
   "schema_version": 1,
+  "safe_republish": {
+    "active_in_app": true,
+    "health_200": true,
+    "options_200": true,
+    "trigger": "phase_4_holdout_safety_action",
+    "verified_at": "2026-07-19T01:58:37Z"
+  },
   "slice": {
     "capability_count": 6,
     "model_requests": 0,
     "region_count": 17,
     "row_count": 30,
-    "run_id": "walk-20260719T011630Z",
+    "run_id": "walk-20260719T015326Z",
     "run_status": "complete",
     "selection_hash": "2f2aa32cd6e8fd46d25c7482e635508b4667a12f05c3cf1da747ea2f3c611bb2"
   },
