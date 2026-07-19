@@ -347,6 +347,13 @@
   .by-cost.is-paid { color: var(--thin); border-color: var(--thin); background: var(--thin-bg); }
   .by-note { font-size: 12px; color: var(--ink-3); line-height: 1.45; }
 
+  /* The attempt trail: every check that tried this item before one decided. */
+  .ev-trail {
+    margin: 4px 0 0; font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.04em; color: var(--ink-3);
+  }
+  .ev-trail b { font-weight: 600; color: var(--indigo); }
+
   .cost {
     margin: 0; padding: 9px 12px;
     background: var(--card-sunk); border: 1px solid var(--line-soft);
@@ -576,6 +583,21 @@
     }).join("")}</ol>`;
   }
 
+  const ATTEMPT_TEXT = {
+    decision: "decided",
+    abstention: "couldn't tell",
+    processing_failure: "failed",
+  };
+
+  function attemptTrailHtml(item) {
+    const attempts = Array.isArray(item.attempts) ? item.attempts : [];
+    if (attempts.length < 2) return "";
+    const steps = attempts.map(attempt =>
+      `<b>${escapeHtml(attempt.check_id)}</b>: ${escapeHtml(ATTEMPT_TEXT[attempt.outcome] || attempt.outcome)}`
+    );
+    return `<p class="ev-trail">${steps.join(" &rarr; ")}</p>`;
+  }
+
   function evidenceHtml(detail) {
     const decided = detail.receipt.filter(item => item.outcome === "decision");
     return `<div class="ev">${decided.map(item => `
@@ -589,6 +611,7 @@
             <span class="by-cost">free</span>
             <span class="by-note">v${escapeHtml(item.check_version)} &middot; ${escapeHtml(item.rationale)}</span>
           </p>
+          ${attemptTrailHtml(item)}
         </div>
       </div>`).join("")}</div>`;
   }

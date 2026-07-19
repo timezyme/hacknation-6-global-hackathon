@@ -694,10 +694,11 @@ Keep the approved visual design while deepening evidence and evaluation displays
 6. Render planner-entered notes as text, enforce a same-origin content security policy, and send only
    same-origin review requests.
 7. Add an end-to-end test for the exact one-minute workflow.
-8. *(amendment — not implemented)* Show, per decision: the attempt trail (which checks abstained
-   before one decided), the referee outcome or "not double-checked", and the similar-facility
-   comparison context with its honest framing. Show the pilot's confidence intervals on the
-   per-check method panel.
+8. *(amendment — partially implemented)* Show, per decision: the attempt trail (which checks
+   abstained before one decided) — **done, shipped in `app/index.html` ahead of this phase** — plus
+   the referee outcome or "not double-checked" and the similar-facility comparison context with its
+   honest framing (both not implemented). Show the pilot's confidence intervals on the per-check
+   method panel (not implemented).
 
 ### Files, maximum five
 
@@ -792,8 +793,8 @@ demonstrates the required workflow from a cold start.
 - [ ] The one-minute demo completes three consecutive times.
 - [ ] *(amendment — not implemented)* Every free-check decision shows a referee outcome or an
   honest "not double-checked" label.
-- [ ] *(amendment — not implemented)* Receipts show the attempt trail and similar-facility context
-  framed as comparison, never verification.
+- [ ] *(amendment — attempt trail done; similar-facility context not implemented)* Receipts show
+  the attempt trail and similar-facility context framed as comparison, never verification.
 - [ ] *(amendment — not implemented)* The demo examples include at least one non-ranked honesty
   state.
 - [ ] *(amendment — not implemented)* The submission and demo name the answered research questions
