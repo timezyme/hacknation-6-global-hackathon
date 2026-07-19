@@ -14,3 +14,6 @@ __pycache__/
 .mypy_cache/
 .coverage
 HANDOFF.md
+
+# Local video takes; the committed submission videos in artifacts/ stay tracked.
+*.mp4
