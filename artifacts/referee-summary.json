@@ -1,0 +1,20 @@
+{
+  "by_deciding_check": {
+    "vocabulary": {
+      "agree": 14,
+      "could_not_referee": 279,
+      "disagree": 0
+    }
+  },
+  "decisions_refereed": 293,
+  "generated_at": "2026-07-19T03:48:26.103688+00:00",
+  "mode": "rules",
+  "referee_version": "1.0.0",
+  "schema_version": 1,
+  "source": "active published walking-skeleton run",
+  "totals": {
+    "agree": 14,
+    "could_not_referee": 279,
+    "disagree": 0
+  }
+}

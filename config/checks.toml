@@ -2,3 +2,10 @@ checks = [
   "trustdesk.check_presence:PresenceCheck",
   "trustdesk.check_vocabulary:VocabularyCheck",
 ]
+
+# Second-opinion pass over decisions. Display-only: it never changes a verdict.
+# mode "rules" uses free independent rules; mode "model" adds capped Llama bundles.
+[referee]
+enabled = true
+mode = "rules"
+max_model_bundles = 0

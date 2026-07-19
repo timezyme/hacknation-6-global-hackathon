@@ -541,7 +541,11 @@ The config contains one qualified remote check or explicitly disables it. The ru
 unchanged, the labelled artifact measures behavior, and MLflow proves traceability and runtime. At
 this go/no-go checkpoint, approve full, capped-model, or free-check-only mode before Phase 6.
 
-## Phase 5C — Referee pass over free-check decisions *(amendment — not implemented)*
+## Phase 5C — Referee pass over free-check decisions *(amendment — core implemented; receipt wiring pending)*
+
+**Status:** the module, tests, config, contract update, and `artifacts/referee-summary.json` are
+done and committed. Still open: wiring referee findings into batch receipts (Phase 6 files) and
+displaying them (Phase 8).
 
 ### Objective
 

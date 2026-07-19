@@ -144,6 +144,18 @@ pipeline run ID · computation time. Source URLs are a **row-level set**: they s
 one sentence, and the UI says so rather than faking sentence-level citations. The full attempt
 history (which checks abstained before one decided) is preserved for receipts and evaluation.
 
+### The referee — every decision gets a second opinion
+
+Each decision is re-examined by a method independent of the one that decided it: blank decisions
+are directly rechecked; vocabulary decisions are corroborated only by wording the deciding lexicon
+could not itself have matched (its spans are masked before a separately authored term list is
+consulted); model decisions are cross-checked against the free lexicon. A config-capped model
+bundle can referee free-check decisions. Per decision the receipt records: referee outcome
+(`agree` / `disagree` / `could_not_referee`), method, rationale, and referee version. The referee
+**never changes a verdict** — disagreement is displayed as "checks disagree", and an unreviewable
+decision is labelled "not double-checked" rather than silently trusted. Configured in the
+`[referee]` table of `config/checks.toml`.
+
 ### Ranking — deterministic, explained, and honest about what it is not
 
 Within a capability and region, the ranked list contains only `strong support` then
