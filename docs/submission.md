@@ -1,7 +1,5 @@
 # Submission answers
 
-Copy each block into the matching field on the submission form.
-
 ---
 
 ## What problem does your project solve? What pain point are you addressing?
