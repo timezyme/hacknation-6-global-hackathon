@@ -744,10 +744,12 @@ Prove the same workflow works on Databricks Free Edition and preserve evidence t
 5. Rehearse the one-minute script three times against the deployed app.
 6. After the final green rehearsal, obtain freeze approval, then freeze code and data. Keep the
    previous successful batch available.
-7. *(amendment — not implemented)* Update `docs/submission.md` and the demo script to call out the
-   brief's research questions this system answers: confidence intervals around check performance,
-   corroborated claims versus bare listings via the four field grades, and the data-desert versus
-   medical-desert distinction. The brief awards a real-impact bonus only if this is said out loud.
+7. *(amendment — demo script done; submission pending)* Update `docs/submission.md` and the demo
+   script to call out the brief's research questions this system answers: confidence intervals
+   around check performance, corroborated claims versus bare listings via the four field grades,
+   and the data-desert versus medical-desert distinction. The brief awards a real-impact bonus only
+   if this is said out loud. The demo-script callouts are in `docs/demo-script.md` (bolded);
+   `docs/submission.md` still needs its paragraph.
 
 ### Files, maximum five
 
