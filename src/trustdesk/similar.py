@@ -21,8 +21,9 @@ DEFAULT_NEIGHBOR_COUNT = 3
 QUERY_TEXT_MAX_CHARS = 1000
 INDEX_COLUMNS: tuple[str, ...] = ("facility_id", "facility_name", "region")
 FRAMING = (
-    "Most similar facility records in the same dataset, by text similarity. "
-    "Comparison context only - similarity is not verification."
+    "Most similar facility records among an indexed, capability-relevant subset of "
+    "this dataset, by text similarity. Comparison context only - similarity is not "
+    "verification."
 )
 NO_TEXT_FRAMING = "No readable text to compare against other facility records."
 

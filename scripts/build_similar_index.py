@@ -64,6 +64,11 @@ ranked AS (
 )
 SELECT facility_id, facility_name, region, text FROM ranked WHERE rn = 1{limit}
 """
+# When capped, keep only rows relevant to the six target capabilities, richest text
+# first, so a small index still returns sensible neighbors for every demo claim.
+LIMIT_FILTER_SQL = """ AND text rlike
+    '(?i)(icu|intensive care|critical care|maternity|obstetric|emergency|casualty|oncology|cancer|trauma|nicu|neonatal)'
+ORDER BY length(text) DESC, facility_id LIMIT {limit}"""
 
 
 def _warehouse_id(workspace: WorkspaceClient) -> str:
@@ -91,7 +96,7 @@ def _execute(workspace: WorkspaceClient, warehouse_id: str, statement: str) -> t
 
 def _build_text_table(workspace: WorkspaceClient, table: str, limit: int | None) -> int:
     warehouse_id = _warehouse_id(workspace)
-    limit_sql = f" LIMIT {int(limit)}" if limit is not None else ""
+    limit_sql = LIMIT_FILTER_SQL.format(limit=int(limit)) if limit is not None else ""
     statement = TEXT_TABLE_SQL.format(table=table, source=SOURCE_TABLE, limit=limit_sql)
     _execute(workspace, warehouse_id, statement)
     rows = _execute(workspace, warehouse_id, f"SELECT count(*) FROM {table}")

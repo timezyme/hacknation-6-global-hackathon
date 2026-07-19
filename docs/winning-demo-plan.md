@@ -127,6 +127,15 @@ plan's gates instead of beside them. Already built and committed, but not yet vi
 the vector index and its adapter (`src/trustdesk/similar.py`, `scripts/build_similar_index.py`);
 their receipt wiring is an amendment like the rest.
 
+**Vector index scope — subset, not the full 10k.** Free Edition embeds roughly 36 rows a minute,
+so the full 9,997-row sync needs 3-4 hours and was abandoned inside the hackathon window. The live
+index is built with `--limit 500`: the 500 richest-text rows whose text mentions one of the six
+target capabilities, selected deterministically (see `LIMIT_FILTER_SQL` in the build script).
+Similarity context in receipts therefore draws neighbors from that 500-row subset. Any claim of
+"retrieval across 10k rows" in the demo or submission is wrong until the full index is rebuilt;
+say "a capability-relevant subset" instead. Rebuilding the full index after the deadline is one
+command: `scripts/build_similar_index.py` without `--limit`.
+
 ## Schedule guardrails and fallback modes
 
 Timeboxes are ceilings. When a timebox expires, preserve the last green deployment and take the
