@@ -9,14 +9,23 @@ live demo. Reviews live in Lakebase and always survive restarts.
 
 ## Keep-alive during judging
 
-Free Edition stops every app 24 hours after it starts. A scheduled workspace
-job (`keep-trustdesk-app-alive`, job id `544062991972699`) restarts the app at
-**04:10 and 16:10 UTC, July 19-24 2026 only**, so the 24-hour clock never
-expires during judging. Each restart is a ~3 minute downtime window. The job
-runs the notebook `/Workspace/Shared/keep-trustdesk-alive`, which also refuses
-to act after 2026-07-24. The schedule self-expires: the last restart is
-16:10 UTC on July 24, and the app auto-stops for good about 24 hours later.
-The job can then be deleted from Workflows at leisure.
+Free Edition stops app compute at the workspace/account level roughly every
+**6-8 hours** (compute message: "stopped due to workspace or account status").
+This is not the 24-hour idle timer and no setting prevents it. A scheduled
+workspace job (`keep-trustdesk-app-alive`, job id `544062991972699`) checks the
+app **every 30 minutes** (July 19-24 2026 only) and restarts it only if it is
+down, so worst-case downtime after a stop is ~30 min plus a ~3 min cold start.
+The job never stops a healthy app. It runs the notebook
+`/Workspace/Shared/keep-trustdesk-alive`, which also refuses to act after
+2026-07-24, so the automation self-expires. Delete the job from Workflows after
+judging.
+
+There is no way to guarantee 100% uptime on Free Edition. Before a known
+judging window, warm it by hand for certainty:
+
+```sh
+uv run python scripts/smoke_demo.py --profile trustdesk-spike
+```
 
 ## Restart from the browser
 
